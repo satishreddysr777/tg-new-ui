@@ -26,11 +26,11 @@ services:
         value: "3000"
       - key: HOSTNAME
         value: 0.0.0.0
-      # BUILD_AND_RUN_TIME envs are passed to `docker build` as --build-arg.
+      # RUN_AND_BUILD_TIME envs are passed to `docker build` as --build-arg.
       # API_ORIGIN is baked into next.config rewrites at build time.
       - key: API_ORIGIN
         value: ${API_ORIGIN}
-        scope: BUILD_AND_RUN_TIME
+        scope: RUN_AND_BUILD_TIME
       # Read by middleware at runtime only — never needed during the build.
       - key: JWT_SECRET
         value: ${JWT_SECRET}
