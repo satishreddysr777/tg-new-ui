@@ -6,14 +6,10 @@ WORKDIR /app
 COPY package.json package-lock.json ./
 RUN npm ci
 
-# ── 2. build (API_ORIGIN is baked into next.config rewrites here) ───────────
+# ── 2. build (API_ORIGIN is baked into next.config rewrites here; JWT_SECRET and SESSION_COOKIE_NAME are read at runtime) ───
 FROM deps AS build
 ARG API_ORIGIN
-ARG JWT_SECRET
-ARG SESSION_COOKIE_NAME=tg_session
 ENV API_ORIGIN=$API_ORIGIN \
-    JWT_SECRET=$JWT_SECRET \
-    SESSION_COOKIE_NAME=$SESSION_COOKIE_NAME \
     NEXT_TELEMETRY_DISABLED=1
 COPY . .
 RUN npm run build
