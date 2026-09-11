@@ -1,0 +1,44 @@
+name: Deploy
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+concurrency:
+  group: deploy-tg-ui
+  cancel-in-progress: false
+
+jobs:
+  checks:
+    name: Build (includes type check)
+    runs-on: ubuntu-latest
+    env:
+      API_ORIGIN: https://placeholder.invalid
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
+
+  deploy:
+    name: Deploy to DigitalOcean App Platform
+    needs: checks
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Deploy tg-ui
+        uses: digitalocean/app_action/deploy@v2
+        env:
+          # Substituted into ${NAME} placeholders in .do/app.yaml.
+          API_ORIGIN: ${{ vars.API_ORIGIN }}
+          JWT_SECRET: ${{ secrets.JWT_SECRET }}
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+          app_spec_location: .do/app.yaml
+          print_build_logs: true
+          print_deploy_logs: true

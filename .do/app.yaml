@@ -1,0 +1,41 @@
+# DigitalOcean App Platform spec for tg-ui.
+# Deployed by .github/workflows/deploy.yml via digitalocean/app_action/deploy@v2.
+# ${NAME} placeholders are filled from the workflow's env.
+name: tg-ui
+region: nyc
+
+services:
+  - name: web
+    dockerfile_path: Dockerfile
+    source_dir: /
+    github:
+      repo: satishreddysr777/tg-new-ui
+      branch: main
+      deploy_on_push: false
+    http_port: 3000
+    instance_size_slug: basic-xxs
+    instance_count: 1
+    health_check:
+      http_path: /login
+      initial_delay_seconds: 10
+      period_seconds: 10
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: HOSTNAME
+        value: 0.0.0.0
+      # RUN_AND_BUILD_TIME envs are passed to `docker build` as --build-arg.
+      # API_ORIGIN is baked into next.config rewrites at build time.
+      - key: API_ORIGIN
+        value: ${API_ORIGIN}
+        scope: RUN_AND_BUILD_TIME
+      # Read by middleware at runtime only — never needed during the build.
+      - key: JWT_SECRET
+        value: ${JWT_SECRET}
+        type: SECRET
+        scope: RUN_TIME
+      - key: SESSION_COOKIE_NAME
+        value: tg_session
+        scope: RUN_TIME

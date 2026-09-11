@@ -1,0 +1,12 @@
+node_modules
+.next
+out
+build
+.git
+.github
+.do
+.env*
+!.env.production.example
+*.tsbuildinfo
+.DS_Store
+.vercel
