@@ -1,0 +1,23 @@
+name: CI
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  checks:
+    name: Build (includes type check)
+    runs-on: ubuntu-latest
+    env:
+      # Placeholder so `next build` is deterministic in CI; the real value is
+      # supplied by App Platform at build time.
+      API_ORIGIN: https://placeholder.invalid
+      NEXT_TELEMETRY_DISABLED: "1"
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+      - run: npm ci
+      - run: npm run build
