@@ -4,6 +4,16 @@
 name: tg-ui
 region: nyc
 
+# Custom domain. DNS zone is hosted on DigitalOcean, so App Platform creates
+# the records and issues TLS certificates itself.
+domains:
+  - domain: technographinc.com
+    type: PRIMARY
+    zone: technographinc.com
+  - domain: www.technographinc.com
+    type: ALIAS
+    zone: technographinc.com
+
 services:
   - name: web
     dockerfile_path: Dockerfile
