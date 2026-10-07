@@ -4,15 +4,12 @@
 name: tg-ui
 region: nyc
 
-# Custom domain. DNS zone is hosted on DigitalOcean, so App Platform creates
-# the records and issues TLS certificates itself.
+# Custom domain. DNS stays at GoDaddy: a CNAME for www points at this app's
+# default ondigitalocean.app hostname; the bare domain is forwarded to www by
+# GoDaddy. App Platform issues the TLS certificate once the CNAME resolves.
 domains:
-  - domain: technographinc.com
-    type: PRIMARY
-    zone: technographinc.com
   - domain: www.technographinc.com
-    type: ALIAS
-    zone: technographinc.com
+    type: PRIMARY
 
 services:
   - name: web
