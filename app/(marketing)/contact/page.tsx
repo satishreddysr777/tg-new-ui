@@ -1,4 +1,6 @@
 import type { Metadata } from "next";
+import { Mail, Phone, MapPin, Clock } from "lucide-react";
+import { Accent, PageHero } from "@/components/site/SiteShell";
 import ContactForm from "@/components/ContactForm";
 
 export const metadata: Metadata = {
@@ -7,71 +9,64 @@ export const metadata: Metadata = {
     "Talk to a Technograph talent acquisition manager. Whether you're hiring, applying, or partnering — let's shape the future of your workforce together.",
 };
 
+function Item({
+  icon: Icon,
+  t,
+  children,
+}: {
+  icon: typeof Mail;
+  t: string;
+  children: React.ReactNode;
+}) {
+  return (
+    <li className="flex gap-4">
+      <Icon className="mt-0.5 h-5 w-5 text-teal" />
+      <div>
+        <p className="font-mono text-xs uppercase tracking-widest text-navy-muted">{t}</p>
+        <p className="mt-1">{children}</p>
+      </div>
+    </li>
+  );
+}
+
 export default function ContactPage() {
   return (
     <>
-      {/* ============ HERO ============ */}
-      <section className="page-hero" style={{ paddingBottom: 0 }}>
-        <div className="wrap">
-          <span className="eyebrow">
-            <span className="tick"></span>Contact us
-          </span>
-          <h1 className="display">
-            Let&apos;s shape the future of your workforce,{" "}
-            <span className="accent">together.</span>
-          </h1>
-          <p className="lead">
-            Tell us what you&apos;re building. A talent acquisition manager will
-            get back to you within one business day.
-          </p>
-        </div>
-      </section>
-
-      {/* ============ FORM + ASIDE ============ */}
-      <section className="section">
-        <div className="wrap contact-grid">
+      <PageHero
+        eyebrow="Contact us"
+        title={
+          <>
+            Let's shape the future of your workforce, <Accent>together.</Accent>
+          </>
+        }
+        lead="Tell us what you're building. A talent acquisition manager will get back to you within one business day."
+      />
+      <section className="container-x grid gap-10 py-20 lg:grid-cols-[1.5fr_1fr]">
+        <div className="rounded-xl border bg-card p-8 shadow-card md:p-10">
           <ContactForm />
-
-          <aside className="contact-aside reveal d2">
-            <h3>Talk to a person.</h3>
-            <p
-              className="body"
-              style={{
-                color: "var(--on-dark)",
-                marginTop: "12px",
-                fontSize: "15px",
-              }}
-            >
-              Prefer to reach us directly? We&apos;re here.
-            </p>
-            <div style={{ marginTop: "24px" }}>
-              <div className="info-block">
-                <div className="lbl">Email</div>
-                <div className="val">
-                  <a href="mailto:hello@technograph.com">
-                    hello@technograph.com
-                  </a>
-                </div>
-              </div>
-              <div className="info-block">
-                <div className="lbl">Phone</div>
-                <div className="val">
-                  <a href="tel:+18005551234">+1 (800) 555-1234</a>
-                </div>
-                <div className="sub">Mon–Fri · 8am–6pm ET</div>
-              </div>
-              <div className="info-block">
-                <div className="lbl">Offices</div>
-                <div className="val">New York · Austin · Remote-first</div>
-                <div className="sub">Serving enterprise clients worldwide.</div>
-              </div>
-              <div className="info-block">
-                <div className="lbl">Response time</div>
-                <div className="val">Within 1 business day</div>
-              </div>
-            </div>
-          </aside>
         </div>
+        <aside className="rounded-xl bg-navy-gradient p-8 text-navy-foreground md:p-10">
+          <h2 className="text-2xl font-semibold">Talk to a person.</h2>
+          <p className="mt-2 text-navy-muted">Prefer to reach us directly? We're here.</p>
+          <ul className="mt-8 space-y-6 text-sm">
+            <Item icon={Mail} t="Email">
+              <a href="mailto:hello@technograph.com" className="hover:underline">
+                hello@technograph.com
+              </a>
+            </Item>
+            <Item icon={Phone} t="Phone">
+              +1 (800) 555-1234
+              <br />
+              <span className="text-navy-muted">Mon–Fri · 8am–6pm ET</span>
+            </Item>
+            <Item icon={MapPin} t="Offices">
+              New York · Austin · Remote-first
+              <br />
+              <span className="text-navy-muted">Serving enterprise clients worldwide.</span>
+            </Item>
+            <Item icon={Clock} t="Response time">Within 1 business day</Item>
+          </ul>
+        </aside>
       </section>
     </>
   );

@@ -1,56 +1,7 @@
 "use client";
 
-import { useId, useState } from "react";
-
-export function Field({
-  label,
-  type = "text",
-  value,
-  onChange,
-  right,
-  mono,
-  error,
-  autoComplete,
-  inputMode,
-}: {
-  label: string;
-  type?: string;
-  value: string;
-  onChange: (v: string) => void;
-  right?: React.ReactNode;
-  mono?: boolean;
-  error?: string;
-  autoComplete?: string;
-  inputMode?: React.HTMLAttributes<HTMLInputElement>["inputMode"];
-}) {
-  const id = useId();
-  return (
-    <div>
-      <div className="between" style={{ marginBottom: 7 }}>
-        <label className="field-label" htmlFor={id} style={{ marginBottom: 0 }}>
-          {label}
-        </label>
-        {right}
-      </div>
-      <input
-        id={id}
-        className={"input" + (mono ? " mono" : "")}
-        type={type}
-        value={value}
-        autoComplete={autoComplete}
-        inputMode={inputMode}
-        aria-invalid={error ? true : undefined}
-        aria-describedby={error ? `${id}-err` : undefined}
-        onChange={(e) => onChange(e.target.value)}
-      />
-      {error && (
-        <p id={`${id}-err`} className="err" role="alert">
-          {error}
-        </p>
-      )}
-    </div>
-  );
-}
+import { Eye, EyeOff } from "lucide-react";
+import { useState } from "react";
 
 export function PasswordToggle({
   show,
@@ -62,16 +13,16 @@ export function PasswordToggle({
   return (
     <button
       type="button"
-      className="link-muted"
       onClick={onToggle}
+      className="text-muted-foreground hover:text-foreground"
       aria-pressed={show}
+      aria-label={show ? "Hide password" : "Show password"}
     >
-      {show ? "HIDE" : "SHOW"}
+      {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
     </button>
   );
 }
 
-/** Shared local-state hook for a show/hide password input. */
 export function usePasswordToggle() {
   const [show, setShow] = useState(false);
   return { show, toggle: () => setShow((s) => !s) };

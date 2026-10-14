@@ -1,15 +1,20 @@
 "use client";
 
 import { useState } from "react";
+import { Eye, EyeOff } from "lucide-react";
 import { authApi, ApiError, isAuthenticated } from "@/lib/auth-api";
 import { completeLogin } from "@/lib/session";
-import { Field, PasswordToggle, usePasswordToggle } from "../fields";
+import { AuthHead } from "../AuthChrome";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { Checkbox } from "@/components/ui/checkbox";
 import type { GoFn } from "../types";
 
 export function SignIn({ go }: { go: GoFn }) {
-  const pw = usePasswordToggle();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
+  const [show, setShow] = useState(false);
   const [keep, setKeep] = useState(true);
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
@@ -24,7 +29,6 @@ export function SignIn({ go }: { go: GoFn }) {
     setBusy(true);
     try {
       const res = await authApi.signIn({ email, password });
-      // MFA off → session cookie set straight away; otherwise do the 2FA step.
       if (isAuthenticated(res)) {
         completeLogin(res.user);
         return;
@@ -42,89 +46,65 @@ export function SignIn({ go }: { go: GoFn }) {
   }
 
   return (
-    <form className="panel-inner" onSubmit={submit} noValidate>
-      <span className="eyebrow">
-        <span className="tick" />
-        Welcome back
-      </span>
-      <h2>Sign in to Technograph</h2>
-      <p className="sub" style={{ marginBottom: 26 }}>
-        Use your work email to access the portal.
-      </p>
-
-      <div style={{ display: "flex", flexDirection: "column", gap: 16 }}>
-        <Field
-          label="Work email"
-          type="email"
-          autoComplete="email"
-          value={email}
-          onChange={setEmail}
-        />
-        <Field
-          label="Password"
-          type={pw.show ? "text" : "password"}
-          autoComplete="current-password"
-          value={password}
-          onChange={setPassword}
-          right={<PasswordToggle show={pw.show} onToggle={pw.toggle} />}
-        />
-        <div className="between">
-          <label
-            style={{
-              display: "flex",
-              alignItems: "center",
-              gap: 8,
-              fontSize: 12.5,
-              color: "var(--ink-2)",
-              cursor: "pointer",
-            }}
-          >
-            <input
-              type="checkbox"
-              checked={keep}
-              onChange={(e) => setKeep(e.target.checked)}
-              style={{ accentColor: "var(--copper)", width: 15, height: 15 }}
+    <>
+      <AuthHead
+        eyebrow="Welcome back"
+        title="Sign in to Technograph"
+        sub="Use your work email to access the portal."
+      />
+      <form onSubmit={submit} className="space-y-5" noValidate>
+        <div className="space-y-2">
+          <Label>Work email</Label>
+          <Input
+            type="email"
+            autoComplete="email"
+            value={email}
+            onChange={(e) => setEmail(e.target.value)}
+            placeholder="you@company.com"
+          />
+        </div>
+        <div className="space-y-2">
+          <Label>Password</Label>
+          <div className="relative">
+            <Input
+              type={show ? "text" : "password"}
+              autoComplete="current-password"
+              value={password}
+              onChange={(e) => setPassword(e.target.value)}
+              className="pr-10"
             />
+            <button
+              type="button"
+              onClick={() => setShow(!show)}
+              className="absolute right-3 top-1/2 -translate-y-1/2 text-muted-foreground"
+              aria-label={show ? "Hide password" : "Show password"}
+            >
+              {show ? <EyeOff className="h-4 w-4" /> : <Eye className="h-4 w-4" />}
+            </button>
+          </div>
+        </div>
+        <div className="flex items-center justify-between text-sm">
+          <label className="flex items-center gap-2">
+            <Checkbox checked={keep} onCheckedChange={(v) => setKeep(v === true)} />
             Keep me signed in
           </label>
           <button
             type="button"
-            className="link"
-            style={{ fontSize: 12.5 }}
+            className="font-medium text-primary hover:underline"
             onClick={() => go("forgot", { email })}
           >
             Forgot password?
           </button>
         </div>
-      </div>
-
-      {error && (
-        <p className="err" role="alert" style={{ marginTop: 14 }}>
-          {error}
-        </p>
-      )}
-
-      <button
-        type="submit"
-        className="btn"
-        style={{ width: "100%", marginTop: 22 }}
-        disabled={busy}
-      >
-        {busy ? "Signing in…" : "Sign in"}
-      </button>
-
-      <p
-        style={{
-          textAlign: "center",
-          fontSize: 12.5,
-          color: "var(--muted-2)",
-          marginTop: 24,
-          lineHeight: 1.5,
-        }}
-      >
-        Technograph accounts are created by invitation. Check your email for an
-        onboarding link, or contact your administrator.
+        {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+        <Button type="submit" variant="navy" size="lg" className="w-full" disabled={busy}>
+          {busy ? "Signing in…" : "Sign in"}
+        </Button>
+      </form>
+      <p className="mt-6 text-xs text-muted-foreground">
+        Technograph accounts are created by invitation. Check your email for an onboarding
+        link, or contact your administrator.
       </p>
-    </form>
+    </>
   );
 }

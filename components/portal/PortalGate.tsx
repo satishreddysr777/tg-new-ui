@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { usePathname, useRouter } from "next/navigation";
-import { Sidebar } from "@/components/portal/Sidebar";
+import { PortalChrome } from "@/components/portal/PortalChrome";
 import { meApi, type MeProfile } from "@/lib/portal/me-api";
 import { MeProvider } from "@/lib/portal/me-context";
 
@@ -74,10 +74,7 @@ export function PortalGate({ children }: { children: React.ReactNode }) {
 
   return (
     <MeProvider value={me}>
-      <div className="app">
-        <Sidebar />
-        <div className="main">{children}</div>
-      </div>
+      <PortalChrome>{children}</PortalChrome>
     </MeProvider>
   );
 }

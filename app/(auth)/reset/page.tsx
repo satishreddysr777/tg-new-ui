@@ -2,13 +2,11 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AuthAside } from "@/components/auth/AuthAside";
-import {
-  Field,
-  PasswordToggle,
-  usePasswordToggle,
-} from "@/components/auth/fields";
-import { scorePassword } from "@/components/auth/passwordStrength";
+import { AuthChrome, AuthHead, StrengthMeter } from "@/components/auth/AuthChrome";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { PasswordToggle, usePasswordToggle } from "@/components/auth/fields";
 import { authApi, ApiError } from "@/lib/auth-api";
 
 function ResetInner() {
@@ -22,8 +20,6 @@ function ResetInner() {
   const [error, setError] = useState<string>();
   const [busy, setBusy] = useState(false);
   const [done, setDone] = useState(false);
-
-  const strength = scorePassword(password);
 
   useEffect(() => {
     let active = true;
@@ -70,99 +66,63 @@ function ResetInner() {
   }
 
   return (
-    <div className="tg-auth">
-      <div className="split">
-        <AuthAside />
-        <div className="panel">
-          <div className="panel-inner">
-            <span className="eyebrow">
-              <span className="tick" />
-              Reset password
-            </span>
+    <AuthChrome>
+      {checking && <AuthHead eyebrow="Reset password" title="Checking your link…" />}
 
-            {checking && <h2>Checking your link…</h2>}
+      {!checking && error && !valid && (
+        <>
+          <AuthHead eyebrow="Reset password" title="This link can't be used" sub={error} />
+          <Button asChild variant="outline" className="mt-6">
+            <a href="/login?screen=forgot">Request a new link</a>
+          </Button>
+        </>
+      )}
 
-            {!checking && error && !valid && (
-              <>
-                <h2>This link can&apos;t be used</h2>
-                <p className="sub" style={{ marginTop: 12, lineHeight: 1.6 }}>
-                  {error}
-                </p>
-                <a
-                  className="btn btn-ghost"
-                  href="/login?screen=forgot"
-                  style={{ marginTop: 22, width: "fit-content" }}
-                >
-                  Request a new link
-                </a>
-              </>
-            )}
+      {!checking && valid && done && (
+        <>
+          <AuthHead
+            eyebrow="Reset password"
+            title="Password updated"
+            sub="You can now sign in with your new password."
+          />
+          <Button asChild variant="navy" className="mt-6">
+            <a href="/login">Go to sign in</a>
+          </Button>
+        </>
+      )}
 
-            {!checking && valid && done && (
-              <>
-                <h2>Password updated</h2>
-                <p className="sub" style={{ marginTop: 12, lineHeight: 1.6 }}>
-                  You can now sign in with your new password.
-                </p>
-                <a
-                  className="btn"
-                  href="/login"
-                  style={{ marginTop: 22, width: "fit-content" }}
-                >
-                  Go to sign in
-                </a>
-              </>
-            )}
-
-            {!checking && valid && !done && (
-              <form onSubmit={submit} noValidate style={{ marginTop: 4 }}>
-                <h2>Choose a new password</h2>
-                <p className="sub" style={{ margin: "10px 0 22px" }}>
-                  Pick something strong you haven&apos;t used before.
-                </p>
-                <Field
-                  label="New password"
+      {!checking && valid && !done && (
+        <>
+          <AuthHead
+            eyebrow="Reset password"
+            title="Choose a new password"
+            sub="Pick something strong you haven't used before."
+          />
+          <form onSubmit={submit} className="space-y-5" noValidate>
+            <div className="space-y-2">
+              <Label>New password</Label>
+              <div className="relative">
+                <Input
                   type={pw.show ? "text" : "password"}
                   autoComplete="new-password"
                   value={password}
-                  onChange={setPassword}
-                  right={<PasswordToggle show={pw.show} onToggle={pw.toggle} />}
+                  onChange={(e) => setPassword(e.target.value)}
+                  className="pr-10"
                 />
-                <div style={{ display: "flex", gap: 5, marginTop: 10 }}>
-                  {[0, 1, 2, 3].map((i) => (
-                    <span
-                      key={i}
-                      style={{
-                        flex: 1,
-                        height: 4,
-                        borderRadius: 2,
-                        background:
-                          i < strength.score ? "var(--ok)" : "var(--paper-3)",
-                      }}
-                    />
-                  ))}
+                <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                  <PasswordToggle show={pw.show} onToggle={pw.toggle} />
                 </div>
-
-                {error && (
-                  <p className="err" role="alert" style={{ marginTop: 14 }}>
-                    {error}
-                  </p>
-                )}
-
-                <button
-                  type="submit"
-                  className="btn"
-                  style={{ width: "100%", marginTop: 22 }}
-                  disabled={busy}
-                >
-                  {busy ? "Saving…" : "Update password"}
-                </button>
-              </form>
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
+              </div>
+              <StrengthMeter pw={password} />
+            </div>
+            {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+            <Button type="submit" variant="navy" size="lg" className="w-full" disabled={busy}>
+              {busy ? "Saving…" : "Update password"}
+            </Button>
+          </form>
+        </>
+      )}
+    </AuthChrome>
   );
 }
 

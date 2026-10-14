@@ -1,24 +1,29 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon, initials } from "@/components/portal/icons";
+import {
+  Body,
+  Empty,
+  Table,
+  td,
+  StageBadge,
+} from "@/components/console/ui";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { ApplicationModal } from "@/components/portal/ApplicationModal";
 import {
   meApi,
   STAGES,
-  stageColor,
   appliedAgo,
-  type ApplicationStage,
   type PortalApplication,
 } from "@/lib/portal/me-api";
-import { fmtDate } from "@/lib/portal/format";
+import { cn } from "@/lib/utils";
 
 const ALL = "All stages";
 
 export default function ApplicationsPage() {
-  const router = useRouter();
   const [apps, setApps] = useState<PortalApplication[] | null>(null);
   const [error, setError] = useState<string>();
   const [selected, setSelected] = useState<PortalApplication | null>(null);
@@ -38,7 +43,9 @@ export default function ApplicationsPage() {
     load();
   }, []);
 
-  const active = apps?.filter((a) => a.stage !== "Rejected" && a.stage !== "Hired").length ?? 0;
+  const active =
+    apps?.filter((a) => a.stage !== "Rejected" && a.stage !== "Hired").length ??
+    0;
   const rows =
     apps?.filter(
       (a) =>
@@ -60,49 +67,41 @@ export default function ApplicationsPage() {
             : `${apps.length} application${apps.length === 1 ? "" : "s"} · ${active} active`
         }
         actions={
-          <button className="btn btn-sm" onClick={() => router.push("/portal/roles")}>
-            <Icon name="bolt" size={15} /> Browse open roles
-          </button>
+          <Button asChild variant="navy">
+            <Link href="/portal/roles">Browse open roles</Link>
+          </Button>
         }
       />
-      <div className="content">
+      <Body>
         {error ? (
-          <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+          <p className="text-center text-sm text-muted-foreground">
             {error}{" "}
-            <button className="link" onClick={load} style={{ fontSize: 13 }}>
+            <button
+              type="button"
+              className="text-primary hover:underline"
+              onClick={load}
+            >
               Retry
             </button>
-          </div>
+          </p>
         ) : apps === null ? (
-          <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-            Loading…
-          </div>
+          <p className="text-center text-sm text-muted-foreground">Loading…</p>
         ) : apps.length === 0 ? (
-          <div className="empty">
-            <span className="ic">
-              <Icon name="users" size={22} />
-            </span>
-            <h3>No applications yet</h3>
-            <p style={{ maxWidth: 420, margin: "8px auto 0" }}>
-              When you apply to an open role it shows up here, and you can track
-              it through every stage of the pipeline.
-            </p>
-          </div>
+          <Empty title="No applications yet">
+            When you apply to an open role it shows up here, and you can track
+            it through every stage of the pipeline.
+          </Empty>
         ) : (
           <>
-            <div className="between" style={{ marginBottom: 14 }}>
-              <div className="search" style={{ width: 280 }}>
-                <Icon name="search" size={16} />
-                <input
-                  className="input"
-                  placeholder="Search your applications…"
-                  value={q}
-                  onChange={(e) => setQ(e.target.value)}
-                />
-              </div>
+            <div className="flex flex-wrap gap-3">
+              <Input
+                className="max-w-xs"
+                placeholder="Search your applications…"
+                value={q}
+                onChange={(e) => setQ(e.target.value)}
+              />
               <select
-                className="select"
-                style={{ width: 170 }}
+                className="h-9 rounded-md border border-input bg-card px-3 text-sm"
                 value={stage}
                 onChange={(e) => setStage(e.target.value)}
               >
@@ -112,70 +111,49 @@ export default function ApplicationsPage() {
                 ))}
               </select>
             </div>
-
-            <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-              {rows.length === 0 ? (
-                <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-                  No applications match that filter.
-                </div>
-              ) : (
-                <table className="tbl">
-                  <thead>
-                    <tr>
-                      <th>Role · Client</th>
-                      <th>Stage</th>
-                      <th>Match</th>
-                      <th>Applied</th>
-                      <th>Reference</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {rows.map((a) => (
-                      <tr key={a.id} className="click" onClick={() => setSelected(a)}>
-                        <td>
-                          <div style={{ display: "flex", gap: 11, alignItems: "center" }}>
-                            <span className="av av-sm">{initials(a.jobTitle)}</span>
-                            <div>
-                              <div style={{ fontWeight: 600 }}>{a.jobTitle}</div>
-                              <div style={{ fontSize: 12, color: "var(--muted)" }}>
-                                {a.jobClientName ?? "Technograph"}
-                              </div>
-                            </div>
-                          </div>
-                        </td>
-                        <td>
-                          <span
-                            className="tag"
-                            style={{
-                              color: stageColor[a.stage as ApplicationStage],
-                              borderColor: "var(--line)",
-                            }}
-                          >
-                            <span className="dot" style={{ background: stageColor[a.stage as ApplicationStage] }} />
-                            {a.stage}
-                          </span>
-                        </td>
-                        <td className="num-c" style={{ fontSize: 12.5 }}>
-                          {a.matchPct != null ? `${a.matchPct}%` : "—"}
-                        </td>
-                        <td className="num-c" style={{ fontSize: 12, color: "var(--muted)" }}>
-                          {fmtDate(a.appliedAt)} · {appliedAgo(a.appliedAt)}
-                        </td>
-                        <td className="mono" style={{ fontSize: 11.5, color: "var(--muted-2)" }}>
-                          {a.applicationCode}
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              )}
-            </div>
+            {rows.length === 0 ? (
+              <p className="text-center text-sm text-muted-foreground">
+                No applications match that filter.
+              </p>
+            ) : (
+              <Table
+                head={["Role · Client", "Stage", "Match", "Applied", "Reference"]}
+              >
+                {rows.map((a) => (
+                  <tr
+                    key={a.id}
+                    className="cursor-pointer hover:bg-muted/50"
+                    onClick={() => setSelected(a)}
+                  >
+                    <td className={td}>
+                      <p className="font-medium text-navy">{a.jobTitle}</p>
+                      <p className="text-xs text-muted-foreground">
+                        {a.jobClientName ?? "Technograph"}
+                      </p>
+                    </td>
+                    <td className={td}>
+                      <StageBadge stage={a.stage} />
+                    </td>
+                    <td className={td}>
+                      {a.matchPct != null ? `${a.matchPct}%` : "—"}
+                    </td>
+                    <td className={td}>{appliedAgo(a.appliedAt)}</td>
+                    <td className={cn(td, "font-mono text-xs")}>
+                      {a.applicationCode}
+                    </td>
+                  </tr>
+                ))}
+              </Table>
+            )}
           </>
         )}
-      </div>
+      </Body>
 
       {selected && (
-        <ApplicationModal application={selected} onClose={() => setSelected(null)} />
+        <ApplicationModal
+          application={selected}
+          onClose={() => setSelected(null)}
+        />
       )}
     </>
   );

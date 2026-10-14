@@ -9,10 +9,21 @@ import {
   type Experience,
   type Stage,
 } from "@/lib/employer/applications-api";
+import { TagInput } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const SOURCES = ["Public board", "LinkedIn", "Referral", "Hacker News", "Other"];
 
 const empty: Experience = { title: "", company: "", period: "", detail: "" };
+const sel = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
 
 export function AddCandidateModal({
   jobIdOrCode,
@@ -35,20 +46,15 @@ export function AddCandidateModal({
   const [linkedin, setLinkedin] = useState("");
   const [summary, setSummary] = useState("");
   const [skills, setSkills] = useState<string[]>([]);
-  const [skillDraft, setSkillDraft] = useState("");
   const [experience, setExperience] = useState<Experience[]>([]);
 
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
 
-  function addSkill() {
-    const v = skillDraft.trim();
-    if (v && !skills.includes(v)) setSkills([...skills, v]);
-    setSkillDraft("");
-  }
-
   function setExp(i: number, key: keyof Experience, val: string) {
-    setExperience((xs) => xs.map((x, k) => (k === i ? { ...x, [key]: val } : x)));
+    setExperience((xs) =>
+      xs.map((x, k) => (k === i ? { ...x, [key]: val } : x)),
+    );
   }
 
   async function submit(e: React.FormEvent) {
@@ -84,107 +90,182 @@ export function AddCandidateModal({
       });
       onCreated(created);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't add the candidate.");
+      setError(
+        err instanceof ApiError ? err.message : "Couldn't add the candidate.",
+      );
       setBusy(false);
     }
   }
 
-  const labelled = (label: string, node: React.ReactNode) => (
-    <div>
-      <label className="field-label">{label}</label>
-      {node}
-    </div>
-  );
-
   return (
-    <div className="modal-bg" onClick={onClose}>
-      <form
-        className="modal"
-        onSubmit={submit}
-        noValidate
-        style={{ maxWidth: 640, height: "auto", maxHeight: "92%" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        <div className="between" style={{ padding: "18px 24px", borderBottom: "1px solid var(--line)" }}>
-          <h3 style={{ fontSize: 19 }}>Add candidate</h3>
-          <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
-            Close ✕
-          </button>
-        </div>
-
-        <div style={{ padding: 24, overflow: "auto", display: "flex", flexDirection: "column", gap: 14 }}>
-          <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 14 }}>
-            {labelled("Full name", <input className="input" value={name} onChange={(e) => setName(e.target.value)} autoFocus />)}
-            {labelled("Stage", (
-              <select className="select" value={stage} onChange={(e) => setStage(e.target.value as Stage)}>
-                {STAGES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            ))}
-            {labelled("Email", <input className="input" type="email" value={email} onChange={(e) => setEmail(e.target.value)} />)}
-            {labelled("Phone", <input className="input" value={phone} onChange={(e) => setPhone(e.target.value)} />)}
-            {labelled("Location", <input className="input" value={location} onChange={(e) => setLocation(e.target.value)} />)}
-            {labelled("Source", (
-              <select className="select" value={source} onChange={(e) => setSource(e.target.value)}>
-                {SOURCES.map((s) => <option key={s}>{s}</option>)}
-              </select>
-            ))}
-            {labelled("Years of experience", <input className="input" type="number" min={0} value={years} onChange={(e) => setYears(e.target.value)} />)}
-            {labelled("Comp ask", <input className="input" value={compAsk} onChange={(e) => setCompAsk(e.target.value)} />)}
-            {labelled("Match %", <input className="input" type="number" min={0} max={100} value={matchPct} onChange={(e) => setMatchPct(e.target.value)} />)}
-            {labelled("LinkedIn", <input className="input" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} />)}
-          </div>
-
-          {labelled("Summary", <textarea className="textarea" rows={2} value={summary} onChange={(e) => setSummary(e.target.value)} />)}
-
-          {labelled("Skills", (
-            <div className="input" style={{ display: "flex", flexWrap: "wrap", gap: 6, alignItems: "center", minHeight: 44 }}>
-              {skills.map((s) => (
-                <span key={s} className="tag tag-copper" style={{ cursor: "pointer" }} onClick={() => setSkills(skills.filter((x) => x !== s))}>
-                  {s} ✕
-                </span>
-              ))}
-              <input
-                value={skillDraft}
-                onChange={(e) => setSkillDraft(e.target.value)}
-                onKeyDown={(e) => { if (e.key === "Enter") { e.preventDefault(); addSkill(); } }}
-                onBlur={addSkill}
-                style={{ flex: 1, minWidth: 120, border: 0, outline: 0, background: "transparent", fontSize: 13.5, color: "var(--ink)" }}
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-2xl overflow-y-auto">
+        <DialogTitle className="text-navy">Add candidate</DialogTitle>
+        <form onSubmit={submit} className="space-y-4" noValidate>
+          <div className="grid gap-3 sm:grid-cols-2">
+            <div className="space-y-1.5">
+              <Label className="text-xs">Full name</Label>
+              <Input
+                value={name}
+                onChange={(e) => setName(e.target.value)}
+                autoFocus
               />
             </div>
-          ))}
+            <div className="space-y-1.5">
+              <Label className="text-xs">Stage</Label>
+              <select
+                className={sel}
+                value={stage}
+                onChange={(e) => setStage(e.target.value as Stage)}
+              >
+                {STAGES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Email</Label>
+              <Input
+                type="email"
+                value={email}
+                onChange={(e) => setEmail(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Phone</Label>
+              <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Location</Label>
+              <Input
+                value={location}
+                onChange={(e) => setLocation(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Source</Label>
+              <select
+                className={sel}
+                value={source}
+                onChange={(e) => setSource(e.target.value)}
+              >
+                {SOURCES.map((s) => (
+                  <option key={s}>{s}</option>
+                ))}
+              </select>
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Years of experience</Label>
+              <Input
+                type="number"
+                min={0}
+                value={years}
+                onChange={(e) => setYears(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Comp ask</Label>
+              <Input value={compAsk} onChange={(e) => setCompAsk(e.target.value)} />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">Match %</Label>
+              <Input
+                type="number"
+                min={0}
+                max={100}
+                value={matchPct}
+                onChange={(e) => setMatchPct(e.target.value)}
+              />
+            </div>
+            <div className="space-y-1.5">
+              <Label className="text-xs">LinkedIn</Label>
+              <Input
+                value={linkedin}
+                onChange={(e) => setLinkedin(e.target.value)}
+              />
+            </div>
+          </div>
 
-          <div>
-            <div className="between" style={{ marginBottom: 6 }}>
-              <label className="field-label" style={{ marginBottom: 0 }}>Experience</label>
-              <button type="button" className="link" style={{ fontSize: 12.5 }} onClick={() => setExperience([...experience, { ...empty }])}>
+          <div className="space-y-1.5">
+            <Label className="text-xs">Summary</Label>
+            <Textarea
+              rows={2}
+              value={summary}
+              onChange={(e) => setSummary(e.target.value)}
+            />
+          </div>
+
+          <div className="space-y-1.5">
+            <Label className="text-xs">Skills</Label>
+            <TagInput value={skills} onChange={setSkills} />
+          </div>
+
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <Label className="text-xs">Experience</Label>
+              <Button
+                type="button"
+                size="sm"
+                variant="outline"
+                onClick={() => setExperience([...experience, { ...empty }])}
+              >
                 + Add row
-              </button>
+              </Button>
             </div>
-            <div style={{ display: "flex", flexDirection: "column", gap: 10 }}>
-              {experience.map((x, i) => (
-                <div key={i} style={{ display: "grid", gridTemplateColumns: "1fr 1fr auto", gap: 8 }}>
-                  <input className="input" placeholder="" value={x.title} onChange={(e) => setExp(i, "title", e.target.value)} aria-label="Title" />
-                  <input className="input" value={x.company} onChange={(e) => setExp(i, "company", e.target.value)} aria-label="Company" />
-                  <button type="button" className="btn btn-ghost btn-sm" onClick={() => setExperience(experience.filter((_, k) => k !== i))}>✕</button>
-                  <input className="input" value={x.period} onChange={(e) => setExp(i, "period", e.target.value)} aria-label="Period" />
-                  <input className="input" style={{ gridColumn: "2 / 4" }} value={x.detail} onChange={(e) => setExp(i, "detail", e.target.value)} aria-label="Detail" />
-                </div>
-              ))}
-            </div>
+            {experience.map((x, i) => (
+              <div
+                key={i}
+                className="grid gap-2 rounded-md border p-3 sm:grid-cols-3"
+              >
+                <Input
+                  placeholder="Title"
+                  value={x.title}
+                  onChange={(e) => setExp(i, "title", e.target.value)}
+                />
+                <Input
+                  placeholder="Company"
+                  value={x.company}
+                  onChange={(e) => setExp(i, "company", e.target.value)}
+                />
+                <Button
+                  type="button"
+                  size="sm"
+                  variant="ghost"
+                  onClick={() =>
+                    setExperience(experience.filter((_, k) => k !== i))
+                  }
+                >
+                  Remove
+                </Button>
+                <Input
+                  placeholder="Period"
+                  value={x.period}
+                  onChange={(e) => setExp(i, "period", e.target.value)}
+                />
+                <Input
+                  className="sm:col-span-2"
+                  placeholder="Detail"
+                  value={x.detail}
+                  onChange={(e) => setExp(i, "detail", e.target.value)}
+                />
+              </div>
+            ))}
           </div>
 
-          {error && <p className="err" role="alert">{error}</p>}
+          {error && (
+            <p className="text-sm text-destructive" role="alert">{error}</p>
+          )}
 
-          <div style={{ display: "flex", gap: 10, marginTop: 4 }}>
-            <button type="submit" className="btn btn-sm" disabled={busy}>
-              {busy ? "Adding…" : "Add candidate"}
-            </button>
-            <button type="button" className="btn btn-ghost btn-sm" onClick={onClose}>
+          <div className="flex justify-end gap-2">
+            <Button type="button" variant="outline" onClick={onClose}>
               Cancel
-            </button>
+            </Button>
+            <Button type="submit" variant="navy" disabled={busy}>
+              {busy ? "Adding…" : "Add candidate"}
+            </Button>
           </div>
-        </div>
-      </form>
-    </div>
+        </form>
+      </DialogContent>
+    </Dialog>
   );
 }

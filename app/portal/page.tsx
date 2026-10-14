@@ -1,24 +1,16 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Briefcase, DollarSign, FileText, Search } from "lucide-react";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon, type IconName } from "@/components/portal/icons";
+import { Body, Tile } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
 import { meApi, type PortalApplication, type PortalRole } from "@/lib/portal/me-api";
 import { useMe, firstName } from "@/lib/portal/me-context";
 import { engagementProgress, fmtDate } from "@/lib/portal/format";
 
-interface Tile {
-  href: string;
-  icon: IconName;
-  title: string;
-  big: string;
-  small: string;
-  color: string;
-}
-
 export default function PortalHome() {
-  const router = useRouter();
   const me = useMe();
   const [roles, setRoles] = useState<PortalRole[] | null>(null);
   const [apps, setApps] = useState<PortalApplication[] | null>(null);
@@ -41,53 +33,6 @@ export default function PortalHome() {
   const activeApps = apps?.filter((a) => a.stage !== "Rejected" && a.stage !== "Hired") ?? [];
   const furthest = apps && apps.length > 0 ? apps[0]!.stage : null;
 
-  const tiles: Tile[] = [
-    {
-      href: "/portal/engagement",
-      icon: "brief",
-      title: "My engagement",
-      big: prog ? `${prog.remaining} weeks left` : (me.clientName ?? "No active engagement"),
-      small: me.clientName
-        ? `${me.clientName} · through ${fmtDate(me.endDate)}`
-        : "On bench",
-      color: "var(--teal)",
-    },
-    {
-      href: "/portal/pay",
-      icon: "cash",
-      title: "Pay rate",
-      big: me.payRate ?? "—",
-      small: [me.employmentType, me.clientName].filter(Boolean).join(" · ") || "—",
-      color: "var(--ok)",
-    },
-    {
-      href: "/portal/roles",
-      icon: "bolt",
-      title: "Open roles",
-      big: roles === null ? "…" : `${openRoles.length} open`,
-      small:
-        roles === null
-          ? "Loading roles"
-          : matched > 0
-            ? `${matched} match your stack`
-            : "Matched to your profile",
-      color: "var(--plum)",
-    },
-    {
-      href: "/portal/applications",
-      icon: "users",
-      title: "My applications",
-      big: apps === null ? "…" : `${activeApps.length} active`,
-      small:
-        apps === null
-          ? "Loading applications"
-          : furthest
-            ? `Furthest stage · ${furthest}`
-            : "No applications yet",
-      color: "var(--copper)",
-    },
-  ];
-
   return (
     <>
       <Topbar
@@ -100,79 +45,69 @@ export default function PortalHome() {
         }
         actions={
           <>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => router.push("/portal/engagement")}
-            >
-              View engagement
-            </button>
-            <button className="btn btn-sm" onClick={() => router.push("/portal/roles")}>
-              <Icon name="bolt" size={15} /> Browse open roles
-            </button>
+            <Button asChild variant="outline">
+              <Link href="/portal/engagement">View engagement</Link>
+            </Button>
+            <Button asChild variant="navy">
+              <Link href="/portal/roles">Browse open roles</Link>
+            </Button>
           </>
         }
       />
-
-      <div className="content">
-        <div className="grid-4">
-          {tiles.map((t) => (
-            <button
-              key={t.href}
-              className="card"
-              onClick={() => router.push(t.href)}
-              style={{
-                textAlign: "left",
-                cursor: "pointer",
-                background: "var(--paper)",
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-              }}
-            >
-              <span
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 11,
-                  background: t.color,
-                  color: "#fff",
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                <Icon name={t.icon} size={21} />
-              </span>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 600,
-                    fontSize: 18,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {t.title}
-                </div>
-                <div style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 4 }}>
-                  {t.big}
-                </div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 10.5,
-                    letterSpacing: "0.04em",
-                    color: "var(--muted-2)",
-                    marginTop: 6,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t.small}
-                </div>
-              </div>
-            </button>
-          ))}
+      <Body>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Tile
+            to="/portal/engagement"
+            icon={<Briefcase className="h-4 w-4" />}
+            label="My engagement"
+            big={
+              prog
+                ? `${prog.remaining} weeks left`
+                : (me.clientName ?? "No active engagement")
+            }
+            small={
+              me.clientName
+                ? `${me.clientName} · through ${fmtDate(me.endDate)}`
+                : "On bench"
+            }
+          />
+          <Tile
+            to="/portal/pay"
+            icon={<DollarSign className="h-4 w-4" />}
+            label="Pay rate"
+            big={me.payRate ?? "—"}
+            small={
+              [me.employmentType, me.clientName].filter(Boolean).join(" · ") || "—"
+            }
+          />
+          <Tile
+            to="/portal/roles"
+            icon={<Search className="h-4 w-4" />}
+            label="Open roles"
+            big={roles === null ? "…" : `${openRoles.length} open`}
+            small={
+              roles === null
+                ? "Loading roles"
+                : matched > 0
+                  ? `${matched} match your stack`
+                  : "Matched to your profile"
+            }
+          />
+          <Tile
+            to="/portal/applications"
+            icon={<FileText className="h-4 w-4" />}
+            label="My applications"
+            big={apps === null ? "…" : `${activeApps.length} active`}
+            small={
+              apps === null
+                ? "Loading applications"
+                : furthest
+                  ? `Furthest stage · ${furthest}`
+                  : "No applications yet"
+            }
+          />
         </div>
-      </div>
+      </Body>
     </>
   );
 }

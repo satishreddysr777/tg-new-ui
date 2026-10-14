@@ -11,7 +11,7 @@ export default function PortalLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="tgc" style={{ height: "100dvh" }}>
+    <div className="min-h-screen">
       <PortalGate>{children}</PortalGate>
     </div>
   );

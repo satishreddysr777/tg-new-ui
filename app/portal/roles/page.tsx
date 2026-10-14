@@ -1,14 +1,14 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { Search } from "lucide-react";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon } from "@/components/portal/icons";
+import { Body, Chip, Empty } from "@/components/console/ui";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import { RoleModal } from "@/components/portal/RoleModal";
 import { meApi, type PortalRole } from "@/lib/portal/me-api";
 import { formatComp, postedAgo } from "@/lib/portal/format";
-
-const matchTone = (pct: number) =>
-  pct >= 67 ? "tag-ok" : pct >= 34 ? "tag-copper" : "tag";
 
 export default function RolesPage() {
   const [roles, setRoles] = useState<PortalRole[] | null>(null);
@@ -29,12 +29,15 @@ export default function RolesPage() {
     load();
   }, []);
 
-  // Reflect an apply without a refetch.
   function markApplied(jobCode: string) {
     setRoles((prev) =>
-      prev ? prev.map((r) => (r.jobCode === jobCode ? { ...r, applied: true } : r)) : prev,
+      prev
+        ? prev.map((r) => (r.jobCode === jobCode ? { ...r, applied: true } : r))
+        : prev,
     );
-    setSelected((s) => (s && s.jobCode === jobCode ? { ...s, applied: true } : s));
+    setSelected((s) =>
+      s && s.jobCode === jobCode ? { ...s, applied: true } : s,
+    );
   }
 
   const filtered =
@@ -58,95 +61,83 @@ export default function RolesPage() {
             ? "Loading roles…"
             : `${open} role${open === 1 ? "" : "s"} open · matched to your stack`
         }
-        actions={
-          <div className="search" style={{ width: 260 }}>
-            <Icon name="search" size={16} />
-            <input
-              className="input"
-              placeholder="Search roles…"
-              value={q}
-              onChange={(e) => setQ(e.target.value)}
-            />
-          </div>
-        }
       />
-      <div className="content">
+      <Body>
+        <div className="relative max-w-sm">
+          <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+          <Input
+            className="pl-9"
+            placeholder="Search roles…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+        </div>
+
         {error ? (
-          <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
+          <p className="text-center text-sm text-muted-foreground">
             {error}{" "}
-            <button className="link" onClick={load} style={{ fontSize: 13 }}>
+            <button
+              type="button"
+              className="text-primary hover:underline"
+              onClick={load}
+            >
               Retry
             </button>
-          </div>
+          </p>
         ) : roles === null ? (
-          <div className="card" style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-            Loading…
-          </div>
+          <p className="text-center text-sm text-muted-foreground">Loading…</p>
+        ) : roles.length === 0 ? (
+          <Empty title="No open roles right now">
+            There are no published roles at the moment. Check back soon.
+          </Empty>
         ) : filtered.length === 0 ? (
-          <div className="empty">
-            <span className="ic">
-              <Icon name="bolt" size={22} />
-            </span>
-            <h3>No open roles right now</h3>
-            <p style={{ maxWidth: 420, margin: "8px auto 0" }}>
-              {roles.length === 0
-                ? "There are no published roles at the moment. Check back soon."
-                : "No roles match that search."}
-            </p>
-          </div>
+          <Empty title="No roles match that search.">
+            Try a different keyword.
+          </Empty>
         ) : (
-          <div className="grid-3">
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {filtered.map((r) => (
-              <button
+              <article
                 key={r.jobCode}
-                className="card"
-                onClick={() => setSelected(r)}
-                style={{ textAlign: "left", cursor: "pointer", display: "flex", flexDirection: "column", gap: 12 }}
+                className="flex flex-col rounded-lg border bg-card p-5 shadow-card"
               >
-                <div className="between" style={{ alignItems: "flex-start" }}>
-                  <span className="mono" style={{ fontSize: 10.5, color: "var(--muted-2)" }}>
-                    {r.jobCode}
-                  </span>
+                <div className="flex items-center justify-between font-mono text-xs">
+                  <span className="text-muted-foreground">{r.jobCode}</span>
                   {r.applied ? (
-                    <span className="tag tag-ok">Applied ✓</span>
+                    <span className="text-success">Applied ✓</span>
                   ) : (
-                    <span className={"tag " + matchTone(r.matchPct)}>{r.matchPct}% match</span>
+                    <span className="text-primary">{r.matchPct}% match</span>
                   )}
                 </div>
-                <div>
-                  <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 17, letterSpacing: "-0.01em" }}>
-                    {r.title}
-                  </div>
-                  <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 3 }}>
-                    {[r.clientName, r.location].filter(Boolean).join(" · ") || "—"}
-                  </div>
+                <h3 className="mt-3 font-semibold text-navy">{r.title}</h3>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {[r.clientName, r.location].filter(Boolean).join(" · ") || "—"}
+                </p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  {[r.engagementType, formatComp(r)].filter(Boolean).join(" · ")}
+                </p>
+                <div className="mt-3 flex flex-wrap gap-1.5">
+                  {r.stack.slice(0, 4).map((s) => (
+                    <Chip key={s}>{s}</Chip>
+                  ))}
                 </div>
-                <div style={{ display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {r.engagementType && <span className="tag">{r.engagementType}</span>}
-                  <span className="tag">{formatComp(r)}</span>
-                </div>
-                {r.stack.length > 0 && (
-                  <div style={{ display: "flex", flexWrap: "wrap", gap: 5 }}>
-                    {r.stack.slice(0, 4).map((s) => (
-                      <span key={s} className="tag tag-copper" style={{ fontSize: 10.5 }}>
-                        {s}
-                      </span>
-                    ))}
-                  </div>
-                )}
-                <div className="between" style={{ marginTop: "auto", paddingTop: 4 }}>
-                  <span className="mono" style={{ fontSize: 10, color: "var(--muted-2)", textTransform: "uppercase" }}>
-                    {postedAgo(r.createdAt)}
+                <div className="mt-auto flex items-center justify-between pt-5">
+                  <span className="text-xs text-muted-foreground">
+                    Posted {postedAgo(r.createdAt)}
                   </span>
-                  <span className="link" style={{ fontSize: 12.5 }}>
-                    {r.applied ? "View" : "View & apply"} →
-                  </span>
+                  <Button
+                    size="sm"
+                    variant={r.applied ? "outline" : "navy"}
+                    onClick={() => setSelected(r)}
+                  >
+                    {r.applied ? "View →" : "View & apply →"}
+                  </Button>
                 </div>
-              </button>
+              </article>
             ))}
           </div>
         )}
-      </div>
+      </Body>
 
       {selected && (
         <RoleModal

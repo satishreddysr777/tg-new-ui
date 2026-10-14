@@ -1,3 +1,6 @@
+import type { ReactNode } from "react";
+import { PageHeader } from "@/components/console/ui";
+
 export function Topbar({
   kicker,
   title,
@@ -5,23 +8,16 @@ export function Topbar({
   actions,
 }: {
   kicker?: string;
-  title: string;
-  sub?: string;
-  actions?: React.ReactNode;
+  title: ReactNode;
+  sub?: ReactNode;
+  actions?: ReactNode;
 }) {
   return (
-    <div className="topbar">
-      <div>
-        {kicker && (
-          <span className="eyebrow">
-            <span className="tick" />
-            {kicker}
-          </span>
-        )}
-        <h1>{title}</h1>
-        {sub && <div className="sub">{sub}</div>}
-      </div>
-      {actions && <div className="actions">{actions}</div>}
-    </div>
+    <PageHeader
+      kicker={kicker ?? ""}
+      title={title}
+      sub={sub}
+      actions={actions}
+    />
   );
 }

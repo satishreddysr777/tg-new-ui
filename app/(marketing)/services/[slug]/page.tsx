@@ -1,7 +1,15 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 import type { Metadata } from "next";
-import { services, getService } from "@/lib/services";
+import {
+  SectionHead,
+  Photo,
+  PageHero,
+  CtaStrip,
+  ArrowLink,
+} from "@/components/site/SiteShell";
+import { Button } from "@/components/ui/button";
+import { services, getService } from "@/lib/marketing-services";
 
 export function generateStaticParams() {
   return services.map((s) => ({ slug: s.slug }));
@@ -14,7 +22,7 @@ export function generateMetadata({
 }): Metadata {
   const svc = getService(params.slug);
   if (!svc) return {};
-  return { title: svc.metaTitle, description: svc.metaDescription };
+  return { title: svc.seoTitle, description: svc.lead };
 }
 
 export default function ServiceDetailPage({
@@ -22,165 +30,114 @@ export default function ServiceDetailPage({
 }: {
   params: { slug: string };
 }) {
-  const svc = getService(params.slug);
-  if (!svc) notFound();
-
-  const related = services.filter((s) => s.slug !== svc.slug);
+  const s = getService(params.slug);
+  if (!s) notFound();
+  const others = services.filter((x) => x.slug !== s.slug);
 
   return (
     <>
-      {/* HERO */}
-      <section className="page-hero">
-        <div className="wrap">
-          <span className="eyebrow">
-            <span className="tick"></span>
-            {svc.eyebrow}
-          </span>
-          <h1 className="display">{svc.title}</h1>
-          <p className="lead">{svc.lead}</p>
-          <div style={{ display: "flex", gap: "14px", marginTop: "30px", flexWrap: "wrap" }}>
-            <Link href="/contact" className="btn btn-dark">
-              Talk to us →
-            </Link>
-            <Link href="/services" className="btn btn-ghost">
-              All services
-            </Link>
-          </div>
+      <PageHero
+        eyebrow={`Service ${s.num} · ${s.tagline}`}
+        title={s.title}
+        lead={s.lead}
+        image={s.image}
+        imageLabel={s.imageLabel}
+      >
+        <Button asChild size="lg" variant="navy">
+          <Link href="/contact">Talk to us →</Link>
+        </Button>
+        <Button asChild size="lg" variant="outline">
+          <Link href="/services">All services</Link>
+        </Button>
+      </PageHero>
+
+      <section className="container-x grid gap-10 py-20 lg:grid-cols-[1fr_1.4fr]">
+        <div>
+          <p className="eyebrow">Overview</p>
+          <h2 className="mt-3 text-3xl font-semibold text-navy">{s.tagline}</h2>
+        </div>
+        <div className="space-y-5 text-lg text-muted-foreground">
+          {s.overview.map((p) => (
+            <p key={p}>{p}</p>
+          ))}
         </div>
       </section>
 
-      {/* OVERVIEW */}
-      <section className="section">
-        <div className="wrap editorial">
-          <div className="head reveal">
-            <span className="eyebrow">
-              <span className="tick"></span>Overview
-            </span>
-            <h2 style={{ marginTop: "18px" }}>{svc.overviewHeading}</h2>
-          </div>
-          <div className="prose reveal d1">
-            {svc.overview.map((p, i) => (
-              <p key={i}>{p}</p>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* WHAT WE DELIVER */}
-      <section className="section" style={{ background: "var(--paper-2)" }}>
-        <div className="wrap">
-          <div style={{ maxWidth: "640px" }} className="reveal">
-            <span className="eyebrow">
-              <span className="tick"></span>What we deliver
-            </span>
-            <h2 style={{ marginTop: "18px" }}>The talent and the toolkit.</h2>
-          </div>
-          <div className="deliver-grid" style={{ marginTop: "50px" }}>
-            {svc.deliver.map((d, i) => (
-              <div className={`value-card reveal${i ? ` d${i}` : ""}`} key={d.n}>
-                <div className="vn">{d.n}</div>
-                <h3>{d.title}</h3>
-                <p>{d.desc}</p>
+      <section className="border-y bg-card py-20">
+        <div className="container-x">
+          <SectionHead eyebrow="What we deliver" title="The talent and the toolkit." />
+          <div
+            className={`mt-12 grid gap-6 md:grid-cols-2 ${s.deliver.length === 3 ? "lg:grid-cols-3" : "lg:grid-cols-4"}`}
+          >
+            {s.deliver.map((d, i) => (
+              <div key={d.t} className="rounded-lg border bg-background p-7">
+                <p className="font-mono text-sm text-primary">
+                  {String(i + 1).padStart(2, "0")}
+                </p>
+                <h3 className="mt-4 text-lg font-semibold text-navy">{d.t}</h3>
+                <p className="mt-2 text-sm text-muted-foreground">{d.d}</p>
               </div>
             ))}
           </div>
-          <div style={{ marginTop: "64px" }}>
-            <span className="kicker">Technologies we staff for</span>
-            <div className="chip-wrap">
-              {svc.chips.map((c) => (
-                <span className="tag" key={c}>
-                  {c}
-                </span>
-              ))}
-            </div>
-          </div>
         </div>
       </section>
 
-      {/* FEATURE */}
-      <section className="section-sm">
-        <div className="wrap">
-          <div className="feature dark reveal">
-            <div className="copy">
-              <span className="eyebrow">
-                <span className="tick"></span>Why it matters
-              </span>
-              <h2 style={{ marginTop: "18px" }}>{svc.featureHeading}</h2>
-              <p className="body" style={{ marginTop: "18px", fontSize: "16.5px" }}>
-                {svc.featureBody}
-              </p>
-              <Link
-                href="/contact"
-                className="link-arrow"
-                style={{ marginTop: "26px", color: "var(--copper)" }}
-              >
-                Start a conversation →
-              </Link>
-            </div>
-            <div className="media">
-              <div className="ph dark" data-label={svc.featureLabel}></div>
-            </div>
-          </div>
-        </div>
-      </section>
-
-      {/* RELATED */}
-      <section className="section" style={{ paddingTop: "40px" }}>
-        <div className="wrap">
-          <div style={{ maxWidth: "640px" }} className="reveal">
-            <span className="eyebrow">
-              <span className="tick"></span>Explore more
-            </span>
-            <h2 style={{ marginTop: "18px" }}>Other services.</h2>
-          </div>
-          <div className="rel-grid reveal">
-            {related.map((r) => (
-              <Link
-                href={`/services/${r.slug}`}
-                className="rel-card"
-                key={r.slug}
-              >
-                <span className="rel-name">{r.navLabel}</span>
-                <span className="rel-go">→</span>
-              </Link>
-            ))}
-          </div>
-        </div>
-      </section>
-
-      {/* CTA */}
-      <section className="section-sm" style={{ paddingTop: "40px" }}>
-        <div className="wrap">
-          <div
-            className="dark reveal"
-            style={{
-              borderRadius: "var(--r-lg)",
-              padding: "84px 56px",
-              textAlign: "center",
-            }}
-          >
-            <span className="eyebrow">
-              <span className="tick"></span>Let’s build together
-            </span>
-            <h2
-              style={{
-                marginTop: "20px",
-                maxWidth: "720px",
-                marginLeft: "auto",
-                marginRight: "auto",
-              }}
+      <section className="container-x py-20">
+        <p className="eyebrow">Technologies we staff for</p>
+        <div className="mt-6 flex flex-wrap gap-2">
+          {s.chips.map((c) => (
+            <span
+              key={c}
+              className="rounded-full border bg-card px-4 py-2 text-sm font-medium text-navy"
             >
-              Ready to bring this capability in-house?
-            </h2>
-            <p className="lead" style={{ margin: "18px auto 34px", maxWidth: "520px" }}>
-              Let’s find the right minds for your mission.
-            </p>
-            <Link href="/contact" className="btn btn-copper">
-              Request a Consultation →
-            </Link>
-          </div>
+              {c}
+            </span>
+          ))}
         </div>
       </section>
+
+      <section className="bg-navy-gradient py-20">
+        <div className="container-x grid items-center gap-12 lg:grid-cols-2">
+          <div>
+            <SectionHead
+              light
+              eyebrow="Why it matters"
+              title={s.featureTitle}
+              lead={s.featureBody}
+            />
+            <div className="mt-8">
+              <ArrowLink href="/contact" light>Start a conversation</ArrowLink>
+            </div>
+          </div>
+          <Photo src={s.image} label={s.featureImageLabel} className="aspect-[4/3]" />
+        </div>
+      </section>
+
+      <section className="container-x py-20">
+        <SectionHead eyebrow="Explore more" title="Other services." />
+        <div className="mt-10 grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          {others.map((o) => (
+            <Link
+              key={o.slug}
+              href={`/services/${o.slug}`}
+              className="group rounded-lg border bg-card p-6 transition-shadow hover:shadow-card"
+            >
+              <p className="font-mono text-xs text-primary">{o.num}</p>
+              <h3 className="mt-3 font-semibold text-navy group-hover:text-primary">
+                {o.navLabel}
+              </h3>
+              <p className="mt-1 text-sm text-muted-foreground">{o.navSub}</p>
+            </Link>
+          ))}
+        </div>
+      </section>
+
+      <CtaStrip
+        eyebrow="Let's build together"
+        title="Ready to bring this capability in-house?"
+        lead="Let's find the right minds for your mission."
+        button="Request a Consultation →"
+      />
     </>
   );
 }

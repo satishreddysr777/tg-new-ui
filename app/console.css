@@ -33,6 +33,15 @@
   text-rendering: optimizeLegibility;
   height: 100%;
 }
+
+/* Inside Lovable ConsoleShell — keep legacy widget styles, not the old paper chrome */
+.tgc.tgc-inner {
+  background: transparent;
+  color: inherit;
+  font-family: inherit;
+  font-size: inherit;
+  height: auto;
+}
 .tgc h1,
 .tgc h2,
 .tgc h3,

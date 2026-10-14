@@ -1,9 +1,13 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useSearchParams } from "next/navigation";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon } from "@/components/portal/icons";
+import { Body, Panel, Segmented } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ApiError, type Role } from "@/lib/auth-api";
 import {
   employerApi,
@@ -19,71 +23,10 @@ const ROLE_OPTIONS: { value: Role; label: string }[] = [
   { value: "ADMIN", label: "Admin" },
 ];
 
-const EMPLOYMENT_TYPES: EmploymentType[] = ["W-2", "1099"];
-
-/** Reusable labelled field wrapper for the form grid. */
-function Field({
-  label,
-  hint,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div>
-      <label className="field-label">{label}</label>
-      {children}
-      {hint && (
-        <div style={{ fontSize: 11.5, color: "var(--muted)", marginTop: 6 }}>
-          {hint}
-        </div>
-      )}
-    </div>
-  );
-}
-
-function SectionCard({
-  step,
-  title,
-  desc,
-  children,
-}: {
-  step: string;
-  title: string;
-  desc: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <div className="card">
-      <div className="between" style={{ alignItems: "flex-start" }}>
-        <div>
-          <span className="eyebrow" style={{ gap: 0 }}>
-            {step}
-          </span>
-          <h3 style={{ fontSize: 17, marginTop: 4 }}>{title}</h3>
-          <p style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 3 }}>
-            {desc}
-          </p>
-        </div>
-      </div>
-      <div className="rule" style={{ margin: "16px 0 18px" }} />
-      <div
-        style={{
-          display: "grid",
-          gridTemplateColumns: "1fr 1fr",
-          gap: 16,
-        }}
-      >
-        {children}
-      </div>
-    </div>
-  );
-}
+const EMPLOYMENT_TYPES = ["W-2", "1099"] as const;
+const sel = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
 
 function AddEmployeeForm() {
-  const router = useRouter();
   const params = useSearchParams();
   const initialRole = (params.get("role") as Role) ?? "EMPLOYEE";
 
@@ -94,7 +37,6 @@ function AddEmployeeForm() {
   const [clients, setClients] = useState<ClientRow[]>([]);
   const [managers, setManagers] = useState<Manager[]>([]);
 
-  // placement + compensation (employee only)
   const [title, setTitle] = useState("");
   const [employmentType, setEmploymentType] = useState<EmploymentType>("W-2");
   const [managerName, setManagerName] = useState("");
@@ -109,14 +51,8 @@ function AddEmployeeForm() {
   const [copied, setCopied] = useState(false);
 
   useEffect(() => {
-    employerApi
-      .listClients()
-      .then(setClients)
-      .catch(() => setClients([]));
-    employerApi
-      .listManagers()
-      .then(setManagers)
-      .catch(() => setManagers([]));
+    employerApi.listClients().then(setClients).catch(() => setClients([]));
+    employerApi.listManagers().then(setManagers).catch(() => setManagers([]));
   }, []);
 
   const isEmployee = role === "EMPLOYEE";
@@ -197,241 +133,197 @@ function AddEmployeeForm() {
         title="Add an employee"
         sub="Set up the placement and compensation, then send a single-use onboarding link."
         actions={
-          <button
-            className="btn btn-ghost btn-sm"
-            onClick={() => router.push("/employer/employees")}
-          >
-            ← Directory
-          </button>
+          <Button asChild variant="outline">
+            <Link href="/employer/employees">← Directory</Link>
+          </Button>
         }
       />
-      <div className="content">
+      <Body className="max-w-3xl">
         {link ? (
-          <div className="card" style={{ maxWidth: 640, margin: "0 auto" }}>
-            <span className="tag tag-ok" style={{ width: "fit-content" }}>
+          <Panel>
+            <span className="rounded-full bg-success/15 px-2.5 py-0.5 text-xs font-medium text-success">
               Invite sent
             </span>
-            <h3 style={{ fontSize: 19, marginTop: 12 }}>
+            <h2 className="mt-4 text-xl font-semibold text-navy">
               Onboarding link is ready
-            </h3>
-            <p
-              style={{
-                fontSize: 13.5,
-                color: "var(--muted)",
-                lineHeight: 1.6,
-                marginTop: 6,
-              }}
-            >
-              An onboarding email is on its way to <strong>{email}</strong>. In
-              dev you can share this single-use magic link directly:
+            </h2>
+            <p className="mt-2 text-sm text-muted-foreground">
+              An onboarding email is on its way to{" "}
+              <b className="text-foreground">{email}</b>. In dev you can share
+              this single-use magic link directly:
             </p>
-            <div
-              className="input mono"
-              style={{
-                fontSize: 11.5,
-                wordBreak: "break-all",
-                background: "var(--paper-2)",
-                cursor: "default",
-                marginTop: 14,
-              }}
-            >
+            <code className="mt-4 block truncate rounded-md bg-muted px-3 py-2 font-mono text-xs">
               {link}
-            </div>
-            <div style={{ display: "flex", gap: 10, marginTop: 16 }}>
-              <button type="button" className="btn btn-sm" onClick={copy}>
+            </code>
+            <div className="mt-5 flex flex-wrap gap-2">
+              <Button type="button" variant="outline" onClick={copy}>
                 {copied ? "Copied ✓" : "Copy link"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={reset}
-              >
+              </Button>
+              <Button type="button" variant="outline" onClick={reset}>
                 Add another
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => router.push("/employer/employees")}
-              >
-                Done → Directory
-              </button>
+              </Button>
+              <Button asChild variant="navy">
+                <Link href="/employer/employees">Done → Directory</Link>
+              </Button>
             </div>
-          </div>
+          </Panel>
         ) : (
-          <form
-            onSubmit={submit}
-            noValidate
-            style={{
-              maxWidth: 820,
-              margin: "0 auto",
-              display: "flex",
-              flexDirection: "column",
-              gap: 18,
-            }}
-          >
-            <SectionCard
-              step="Step 1"
-              title="Account"
-              desc="Who you're inviting and the access they get."
+          <form onSubmit={submit} className="space-y-6" noValidate>
+            <Panel
+              title={
+                <>
+                  Step 1 — Account{" "}
+                  <span className="font-normal text-muted-foreground">
+                    · Who you&apos;re inviting and the access they get.
+                  </span>
+                </>
+              }
             >
-              <Field label="Role">
-                <select
-                  className="select"
-                  value={role}
-                  onChange={(e) => setRole(e.target.value as Role)}
-                >
-                  {ROLE_OPTIONS.map((r) => (
-                    <option key={r.value} value={r.value}>
-                      {r.label}
-                    </option>
-                  ))}
-                </select>
-              </Field>
-              <Field label="Work email">
-                <input
-                  className="input"
-                  type="email"
-                  value={email}
-                  onChange={(e) => setEmail(e.target.value)}
-                />
-              </Field>
-              <Field label="Full name (optional)" hint="The new hire can confirm this during onboarding.">
-                <input
-                  className="input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                />
-              </Field>
-            </SectionCard>
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Role</Label>
+                  <select
+                    className={sel}
+                    value={role}
+                    onChange={(e) => setRole(e.target.value as Role)}
+                  >
+                    {ROLE_OPTIONS.map((r) => (
+                      <option key={r.value} value={r.value}>{r.label}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Work email</Label>
+                  <Input
+                    type="email"
+                    value={email}
+                    onChange={(e) => setEmail(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Full name (optional)</Label>
+                  <Input value={name} onChange={(e) => setName(e.target.value)} />
+                  <p className="text-xs text-muted-foreground">
+                    The new hire can confirm this during onboarding.
+                  </p>
+                </div>
+              </div>
+            </Panel>
 
             {isEmployee && (
               <>
-                <SectionCard
-                  step="Step 2"
-                  title="Placement"
-                  desc="Where and how this engineer is engaged."
+                <Panel
+                  title={
+                    <>
+                      Step 2 — Placement{" "}
+                      <span className="font-normal text-muted-foreground">
+                        · Where and how this engineer is engaged.
+                      </span>
+                    </>
+                  }
                 >
-                  <Field label="Client (placement)">
-                    <select
-                      className="select"
-                      value={clientId}
-                      onChange={(e) => setClientId(e.target.value)}
-                    >
-                      <option value="">Select a client…</option>
-                      {clients.map((c) => (
-                        <option key={c.id} value={c.id}>
-                          {c.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Title">
-                    <input
-                      className="input"
-                      value={title}
-                      onChange={(e) => setTitle(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Employment type">
-                    <select
-                      className="select"
-                      value={employmentType}
-                      onChange={(e) =>
-                        setEmploymentType(e.target.value as EmploymentType)
-                      }
-                    >
-                      {EMPLOYMENT_TYPES.map((t) => (
-                        <option key={t} value={t}>
-                          {t}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Manager">
-                    <select
-                      className="select"
-                      value={managerName}
-                      onChange={(e) => setManagerName(e.target.value)}
-                    >
-                      <option value="">Select a manager…</option>
-                      {managers.map((m) => (
-                        <option key={m.id} value={m.name}>
-                          {m.name}
-                        </option>
-                      ))}
-                    </select>
-                  </Field>
-                  <Field label="Start date">
-                    <input
-                      className="input"
-                      type="date"
-                      value={startDate}
-                      onChange={(e) => setStartDate(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="End date (optional)">
-                    <input
-                      className="input"
-                      type="date"
-                      value={endDate}
-                      onChange={(e) => setEndDate(e.target.value)}
-                    />
-                  </Field>
-                  <Field label="Work location (optional)" hint="The new hire can refine this during onboarding.">
-                    <input
-                      className="input"
-                      value={location}
-                      onChange={(e) => setLocation(e.target.value)}
-                    />
-                  </Field>
-                </SectionCard>
+                  <div className="grid gap-4 sm:grid-cols-2">
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label>Client (placement)</Label>
+                      <select
+                        className={sel}
+                        value={clientId}
+                        onChange={(e) => setClientId(e.target.value)}
+                      >
+                        <option value="">Select a client…</option>
+                        {clients.map((c) => (
+                          <option key={c.id} value={c.id}>{c.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Title</Label>
+                      <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Employment type</Label>
+                      <Segmented
+                        value={employmentType}
+                        options={EMPLOYMENT_TYPES}
+                        onChange={(v) => setEmploymentType(v as EmploymentType)}
+                      />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label>Manager</Label>
+                      <select
+                        className={sel}
+                        value={managerName}
+                        onChange={(e) => setManagerName(e.target.value)}
+                      >
+                        <option value="">Select a manager…</option>
+                        {managers.map((m) => (
+                          <option key={m.id} value={m.name}>{m.name}</option>
+                        ))}
+                      </select>
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>Start date</Label>
+                      <Input
+                        type="date"
+                        value={startDate}
+                        onChange={(e) => setStartDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5">
+                      <Label>End date (optional)</Label>
+                      <Input
+                        type="date"
+                        value={endDate}
+                        onChange={(e) => setEndDate(e.target.value)}
+                      />
+                    </div>
+                    <div className="space-y-1.5 sm:col-span-2">
+                      <Label>Work location (optional)</Label>
+                      <Input
+                        value={location}
+                        onChange={(e) => setLocation(e.target.value)}
+                      />
+                    </div>
+                  </div>
+                </Panel>
 
-                <SectionCard
-                  step="Step 3"
-                  title="Compensation"
-                  desc="Internal rate — never shown to the client."
+                <Panel
+                  title={
+                    <>
+                      Step 3 — Compensation{" "}
+                      <span className="font-normal text-muted-foreground">
+                        · Internal rate — never shown to the client.
+                      </span>
+                    </>
+                  }
                 >
-                  <Field label="Pay rate" hint="What the engineer is paid.">
-                    <input
-                      className="input"
+                  <div className="max-w-xs space-y-1.5">
+                    <Label>Pay rate</Label>
+                    <Input
+                      placeholder="$/hr"
                       value={payRate}
                       onChange={(e) => setPayRate(e.target.value)}
                     />
-                  </Field>
-                </SectionCard>
+                  </div>
+                </Panel>
               </>
             )}
 
             {error && (
-              <p className="err" role="alert">
-                {error}
-              </p>
+              <p className="text-sm text-destructive" role="alert">{error}</p>
             )}
 
-            <div
-              className="card"
-              style={{
-                display: "flex",
-                justifyContent: "flex-end",
-                gap: 10,
-                padding: 16,
-              }}
-            >
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={() => router.push("/employer/employees")}
-              >
-                Cancel
-              </button>
-              <button type="submit" className="btn btn-sm" disabled={busy}>
-                <Icon name="plus" size={15} />
-                {busy ? " Sending…" : " Send onboarding invite"}
-              </button>
+            <div className="flex justify-end gap-2">
+              <Button asChild variant="outline" type="button">
+                <Link href="/employer/employees">Cancel</Link>
+              </Button>
+              <Button variant="navy" type="submit" disabled={busy}>
+                {busy ? "Sending…" : "Send onboarding invite"}
+              </Button>
             </div>
           </form>
         )}
-      </div>
+      </Body>
     </>
   );
 }

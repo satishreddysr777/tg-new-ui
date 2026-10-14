@@ -1,18 +1,9 @@
-import Nav from "@/components/Nav";
-import Footer from "@/components/Footer";
-import ScrollReveal from "@/components/ScrollReveal";
+import { SiteShell } from "@/components/site/SiteShell";
 
 export default function MarketingLayout({
   children,
 }: {
   children: React.ReactNode;
 }) {
-  return (
-    <>
-      <Nav />
-      {children}
-      <Footer />
-      <ScrollReveal />
-    </>
-  );
+  return <SiteShell>{children}</SiteShell>;
 }

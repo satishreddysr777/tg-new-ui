@@ -2,7 +2,8 @@
 
 import { Suspense, useEffect, useState } from "react";
 import { useSearchParams } from "next/navigation";
-import { AuthAside } from "@/components/auth/AuthAside";
+import { AuthChrome, AuthHead } from "@/components/auth/AuthChrome";
+import { Button } from "@/components/ui/button";
 import { SignUp } from "@/components/auth/screens/SignUp";
 import { authApi, ApiError, type InvitePrefill } from "@/lib/auth-api";
 
@@ -43,46 +44,26 @@ function OnboardInner() {
   }, [token]);
 
   return (
-    <div className="tg-auth">
-      <div className="split">
-        <AuthAside />
-        <div className="panel">
-          {loading && (
-            <div className="panel-inner">
-              <span className="eyebrow">
-                <span className="tick" />
-                Onboarding
-              </span>
-              <h2>Checking your invite…</h2>
-            </div>
-          )}
+    <AuthChrome>
+      {loading && (
+        <AuthHead eyebrow="Onboarding" title="Checking your invite…" />
+      )}
 
-          {!loading && error && (
-            <div className="panel-inner">
-              <span className="eyebrow">
-                <span className="tick" />
-                Onboarding
-              </span>
-              <h2>This link can&apos;t be used</h2>
-              <p className="sub" style={{ marginTop: 12, lineHeight: 1.6 }}>
-                {error} Ask your administrator to send a fresh invite.
-              </p>
-              <a
-                className="btn btn-ghost"
-                href="/login"
-                style={{ marginTop: 22, width: "fit-content" }}
-              >
-                Back to sign in
-              </a>
-            </div>
-          )}
+      {!loading && error && (
+        <>
+          <AuthHead
+            eyebrow="Onboarding"
+            title="This link can't be used"
+            sub={`${error} Ask your administrator to send a fresh invite.`}
+          />
+          <Button asChild variant="outline" className="mt-6">
+            <a href="/login">Back to sign in</a>
+          </Button>
+        </>
+      )}
 
-          {!loading && !error && prefill && (
-            <SignUp token={token} prefill={prefill} />
-          )}
-        </div>
-      </div>
-    </div>
+      {!loading && !error && prefill && <SignUp token={token} prefill={prefill} />}
+    </AuthChrome>
   );
 }
 

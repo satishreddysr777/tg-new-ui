@@ -1,14 +1,12 @@
 "use client";
 
+import Link from "next/link";
 import { useCallback, useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon, initials } from "@/components/portal/icons";
+import { Body, Tile, Table, td, StatusBadge } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
 import { ApiError } from "@/lib/auth-api";
 import { employerApi, type Invite } from "@/lib/employer/invites-api";
-
-const statusTag = (s: Invite["status"]) =>
-  s === "ACCEPTED" ? "tag tag-ok" : s === "REVOKED" ? "tag tag-bad" : "tag tag-warn";
 
 const roleLabel: Record<string, string> = {
   EMPLOYEE: "Employee",
@@ -16,8 +14,13 @@ const roleLabel: Record<string, string> = {
   ADMIN: "Admin",
 };
 
+function formatExpires(iso: string): string {
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return "—";
+  return d.toLocaleDateString("en-US", { month: "short", day: "numeric", year: "numeric" });
+}
+
 export default function TeamPage() {
-  const router = useRouter();
   const [invites, setInvites] = useState<Invite[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
@@ -49,18 +52,11 @@ export default function TeamPage() {
       await employerApi.revokeInvite(id);
       load();
     } catch {
-      // Surface via reload; ignore here.
+      /* ignore */
     }
   }
 
-  const pending = invites.filter((i) => i.status === "PENDING").length;
-  const accepted = invites.filter((i) => i.status === "ACCEPTED").length;
-
-  const KPIS: [string, string, string][] = [
-    ["Pending", String(pending), "Awaiting onboarding"],
-    ["Accepted", String(accepted), "Joined via invite"],
-    ["Total invites", String(invites.length), "All time"],
-  ];
+  const c = (s: Invite["status"]) => invites.filter((i) => i.status === s).length;
 
   return (
     <>
@@ -69,107 +65,61 @@ export default function TeamPage() {
         title="Team & invites"
         sub="Invite employees and staff. Each onboarding link is single-use and expires."
         actions={
-          <button
-            className="btn btn-sm"
-            onClick={() => router.push("/employer/employees/new")}
-          >
-            <Icon name="plus" size={15} /> Invite people
-          </button>
+          <Button asChild variant="navy">
+            <Link href="/employer/employees/new">Invite people</Link>
+          </Button>
         }
       />
-      <div className="content">
-        <div className="grid-3" style={{ marginBottom: 18 }}>
-          {KPIS.map(([l, n, f]) => (
-            <div key={l} className="card kpi">
-              <div className="lbl">{l}</div>
-              <div className="num">{n}</div>
-              <div className="foot">{f.toUpperCase()}</div>
-            </div>
-          ))}
+      <Body>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Tile label="Pending" big={c("PENDING")} small="Awaiting onboarding" />
+          <Tile label="Accepted" big={c("ACCEPTED")} small="Joined via invite" />
+          <Tile label="Total invites" big={invites.length} small="All time" />
         </div>
-
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          <div
-            className="between"
-            style={{ padding: "15px 20px", borderBottom: "1px solid var(--line)" }}
-          >
-            <h3 style={{ fontSize: 17 }}>Invites</h3>
-          </div>
-
-          {error ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-              {error}
-            </div>
-          ) : loading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-              Loading…
-            </div>
-          ) : invites.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-              No invites yet. Click <strong>Invite people</strong> to onboard someone.
-            </div>
-          ) : (
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Invitee</th>
-                  <th>Role</th>
-                  <th>Status</th>
-                  <th>Expires</th>
-                  <th />
+        {error ? (
+          <p className="text-center text-muted-foreground">{error}</p>
+        ) : loading ? (
+          <p className="text-center text-muted-foreground">Loading…</p>
+        ) : (
+          <Table head={["Invitee", "Role", "Status", "Expires", ""]}>
+            {invites.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                  No invites yet. Click Invite people to onboard someone.
+                </td>
+              </tr>
+            ) : (
+              invites.map((inv) => (
+                <tr key={inv.id}>
+                  <td className={td}>
+                    <p className="font-medium text-navy">{inv.name ?? inv.email}</p>
+                    {inv.name && (
+                      <p className="text-xs text-muted-foreground">{inv.email}</p>
+                    )}
+                  </td>
+                  <td className={td}>{roleLabel[inv.role] ?? inv.role}</td>
+                  <td className={td}>
+                    <StatusBadge status={inv.status} />
+                  </td>
+                  <td className={td}>{formatExpires(inv.expiresAt)}</td>
+                  <td className={td + " text-right"}>
+                    {inv.status === "PENDING" && (
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        onClick={() => revoke(inv.id)}
+                      >
+                        Revoke
+                      </Button>
+                    )}
+                  </td>
                 </tr>
-              </thead>
-              <tbody>
-                {invites.map((inv) => (
-                  <tr key={inv.id}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                        <span className="av av-sm">
-                          {initials(inv.name ?? inv.email)}
-                        </span>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>
-                            {inv.name ?? inv.email}
-                          </div>
-                          <div
-                            className="mono"
-                            style={{ fontSize: 10.5, color: "var(--muted)" }}
-                          >
-                            {inv.email}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>{roleLabel[inv.role] ?? inv.role}</td>
-                    <td>
-                      <span className={statusTag(inv.status)}>
-                        {inv.status.charAt(0) + inv.status.slice(1).toLowerCase()}
-                      </span>
-                    </td>
-                    <td
-                      className="num-c"
-                      style={{ fontSize: 12, color: "var(--muted)" }}
-                    >
-                      {new Date(inv.expiresAt).toLocaleDateString()}
-                    </td>
-                    <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                      {inv.status === "PENDING" && (
-                        <button
-                          className="link-muted"
-                          style={{ color: "var(--bad)", borderColor: "transparent" }}
-                          onClick={() => revoke(inv.id)}
-                        >
-                          Revoke
-                        </button>
-                      )}
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+              ))
+            )}
+          </Table>
+        )}
+      </Body>
     </>
   );
 }

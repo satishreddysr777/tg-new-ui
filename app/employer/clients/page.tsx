@@ -2,11 +2,13 @@
 
 import { useCallback, useEffect, useState } from "react";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon, initials } from "@/components/portal/icons";
+import { Body, Panel, Table, td } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/auth-api";
 import { employerApi, type ClientRow } from "@/lib/employer/invites-api";
 
-/** "2026-01-13T06:00:00Z" → "Jan 13, 2026". */
 function formatDate(iso: string): string {
   const d = new Date(iso);
   if (Number.isNaN(d.getTime())) return "—";
@@ -107,13 +109,8 @@ export default function ClientsPage() {
 
   async function remove(client: ClientRow) {
     setNotice(undefined);
-    if (client.employeeCount > 0) return; // guarded in UI and API
-    if (
-      !window.confirm(
-        `Delete ${client.name}? This can't be undone.`,
-      )
-    )
-      return;
+    if (client.employeeCount > 0) return;
+    if (!window.confirm(`Delete ${client.name}? This can't be undone.`)) return;
     setDeletingId(client.id);
     try {
       await employerApi.deleteClient(client.id);
@@ -139,175 +136,105 @@ export default function ClientsPage() {
             : `${clients.length} client ${clients.length === 1 ? "company" : "companies"} on record`
         }
         actions={
-          !form && (
-            <button className="btn btn-sm" onClick={openAdd}>
-              <Icon name="plus" size={15} /> Add client
-            </button>
-          )
+          !form ? (
+            <Button variant="navy" onClick={openAdd}>Add client</Button>
+          ) : undefined
         }
       />
-      <div className="content">
+      <Body>
         {form && (
-          <form
-            onSubmit={submit}
-            noValidate
-            className="card"
-            style={{ marginBottom: 18 }}
-          >
-            <div className="between" style={{ alignItems: "flex-start" }}>
-              <div>
-                <span className="eyebrow" style={{ gap: 0 }}>
-                  {form.mode === "add" ? "New client" : "Edit client"}
-                </span>
-                <h3 style={{ fontSize: 17, marginTop: 4 }}>
-                  {form.mode === "add" ? "Add a client" : form.client.name}
-                </h3>
+          <Panel title={form.mode === "add" ? "New client" : "Edit client"}>
+            <p className="mb-4 text-sm text-muted-foreground">
+              {form.mode === "add"
+                ? "Add a client company to your directory."
+                : "Update this client's details."}
+            </p>
+            <form onSubmit={submit}>
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Client name</Label>
+                  <Input
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
+                    autoFocus
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Location</Label>
+                  <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+                </div>
               </div>
-            </div>
-            <div className="rule" style={{ margin: "16px 0 18px" }} />
-            <div
-              style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: 16 }}
-            >
-              <div>
-                <label className="field-label">Client name</label>
-                <input
-                  className="input"
-                  value={name}
-                  onChange={(e) => setName(e.target.value)}
-                  autoFocus
-                />
+              {formError && <p className="mt-3 text-sm text-destructive">{formError}</p>}
+              <div className="mt-4 flex gap-2">
+                <Button type="submit" variant="navy" disabled={busy}>
+                  {busy
+                    ? "Saving…"
+                    : form.mode === "add"
+                      ? "Save client"
+                      : "Save changes"}
+                </Button>
+                <Button type="button" variant="outline" onClick={closeForm}>
+                  Cancel
+                </Button>
               </div>
-              <div>
-                <label className="field-label">Location</label>
-                <input
-                  className="input"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
-              </div>
-            </div>
-            {formError && (
-              <p className="err" role="alert">
-                {formError}
-              </p>
-            )}
-            <div style={{ display: "flex", gap: 10, marginTop: 18 }}>
-              <button type="submit" className="btn btn-sm" disabled={busy}>
-                {busy
-                  ? "Saving…"
-                  : form.mode === "add"
-                    ? "Save client"
-                    : "Save changes"}
-              </button>
-              <button
-                type="button"
-                className="btn btn-ghost btn-sm"
-                onClick={closeForm}
-              >
-                Cancel
-              </button>
-            </div>
-          </form>
+            </form>
+          </Panel>
         )}
 
-        {notice && (
-          <div
-            className="card"
-            role="alert"
-            style={{
-              marginBottom: 18,
-              borderColor: "var(--bad)",
-              color: "var(--bad)",
-              fontSize: 13,
-            }}
-          >
-            {notice}
-          </div>
-        )}
+        {notice && <p className="text-sm text-destructive">{notice}</p>}
 
-        <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-          {error ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-              {error}{" "}
-              <button className="link" onClick={load} style={{ fontSize: 13 }}>
-                Retry
-              </button>
-            </div>
-          ) : loading ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-              Loading…
-            </div>
-          ) : clients.length === 0 ? (
-            <div style={{ padding: 40, textAlign: "center", color: "var(--muted)" }}>
-              No clients yet. Click <strong>Add client</strong> to create one.
-            </div>
-          ) : (
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Client</th>
-                  <th>Location</th>
-                  <th>Employees</th>
-                  <th>Added</th>
-                  <th />
-                </tr>
-              </thead>
-              <tbody>
-                {clients.map((c) => {
-                  const locked = c.employeeCount > 0;
-                  return (
-                    <tr key={c.id}>
-                      <td>
-                        <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                          <span className="av av-sm">{initials(c.name)}</span>
-                          <div style={{ fontWeight: 600 }}>{c.name}</div>
-                        </div>
-                      </td>
-                      <td>{c.location ?? "—"}</td>
-                      <td>
-                        <span className={"tag" + (locked ? " tag-copper" : "")}>
-                          {c.employeeCount}
-                        </span>
-                      </td>
-                      <td
-                        className="num-c"
-                        style={{ fontSize: 12, color: "var(--muted)" }}
+        {error ? (
+          <p className="text-center text-muted-foreground">
+            {error}{" "}
+            <button type="button" className="text-primary underline" onClick={load}>
+              Retry
+            </button>
+          </p>
+        ) : loading ? (
+          <p className="text-center text-muted-foreground">Loading…</p>
+        ) : (
+          <Table head={["Client", "Location", "Employees", "Added", ""]}>
+            {clients.length === 0 ? (
+              <tr>
+                <td colSpan={5} className="px-4 py-10 text-center text-muted-foreground">
+                  No clients yet. Click Add client to create one.
+                </td>
+              </tr>
+            ) : (
+              clients.map((c) => {
+                const locked = c.employeeCount > 0;
+                return (
+                  <tr key={c.id}>
+                    <td className={td + " font-medium text-navy"}>{c.name}</td>
+                    <td className={td}>{c.location ?? "—"}</td>
+                    <td className={td}>{c.employeeCount}</td>
+                    <td className={td}>{formatDate(c.createdAt)}</td>
+                    <td className={td + " text-right"}>
+                      <Button size="sm" variant="ghost" onClick={() => openEdit(c)}>
+                        Edit
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="text-destructive"
+                        disabled={locked || deletingId === c.id}
+                        title={
+                          locked
+                            ? "Reassign or remove employees before deleting"
+                            : "Delete client"
+                        }
+                        onClick={() => remove(c)}
                       >
-                        {formatDate(c.createdAt)}
-                      </td>
-                      <td style={{ textAlign: "right", whiteSpace: "nowrap" }}>
-                        <button
-                          className="link-muted"
-                          onClick={() => openEdit(c)}
-                          style={{ marginRight: 14 }}
-                        >
-                          Edit
-                        </button>
-                        <button
-                          className="link-muted"
-                          onClick={() => remove(c)}
-                          disabled={locked || deletingId === c.id}
-                          title={
-                            locked
-                              ? "Reassign or remove employees before deleting"
-                              : "Delete client"
-                          }
-                          style={{
-                            color: locked ? "var(--muted-2)" : "var(--bad)",
-                            cursor: locked ? "not-allowed" : "pointer",
-                          }}
-                        >
-                          {deletingId === c.id ? "Deleting…" : "Delete"}
-                        </button>
-                      </td>
-                    </tr>
-                  );
-                })}
-              </tbody>
-            </table>
-          )}
-        </div>
-      </div>
+                        {deletingId === c.id ? "Deleting…" : "Delete"}
+                      </Button>
+                    </td>
+                  </tr>
+                );
+              })
+            )}
+          </Table>
+        )}
+      </Body>
     </>
   );
 }

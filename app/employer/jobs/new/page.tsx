@@ -1,8 +1,14 @@
 "use client";
 
+import Link from "next/link";
 import { Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Topbar } from "@/components/portal/Topbar";
+import { Body, Panel, Segmented, TagInput } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Textarea } from "@/components/ui/textarea";
+import { Label } from "@/components/ui/label";
 import { ApiError } from "@/lib/auth-api";
 import {
   employerApi,
@@ -10,10 +16,13 @@ import {
   type Manager,
 } from "@/lib/employer/invites-api";
 import { jobsApi, type JobStatus } from "@/lib/employer/jobs-api";
+import { formatJobComp } from "@/lib/employer/job-format";
 
 const DEPARTMENTS = ["Cloud", "Data", "Engineering", "Security", "Digital"];
-const ENGAGEMENTS = ["Direct hire", "Contract"];
-const COMP_TYPES = ["Yearly", "Hourly"];
+const ENGAGEMENTS = ["Direct hire", "Contract"] as const;
+const COMP_TYPES = ["Yearly", "Hourly"] as const;
+
+const sel = "h-9 w-full rounded-md border border-input bg-background px-3 text-sm";
 
 function CreateJobForm() {
   const router = useRouter();
@@ -29,14 +38,13 @@ function CreateJobForm() {
   const [clientId, setClientId] = useState("");
   const [hiringManager, setHiringManager] = useState("");
   const [department, setDepartment] = useState("Cloud");
-  const [engagementType, setEngagementType] = useState("Direct hire");
+  const [engagementType, setEngagementType] = useState<string>(ENGAGEMENTS[1]);
   const [location, setLocation] = useState("");
   const [headcount, setHeadcount] = useState(1);
-  const [compType, setCompType] = useState("Yearly");
+  const [compType, setCompType] = useState<string>(COMP_TYPES[0]);
   const [compMin, setCompMin] = useState("");
   const [compMax, setCompMax] = useState("");
   const [stack, setStack] = useState<string[]>([]);
-  const [add, setAdd] = useState("");
   const [summary, setSummary] = useState("");
   const [responsibilities, setResponsibilities] = useState("");
 
@@ -55,10 +63,10 @@ function CreateJobForm() {
           setClientId(j.clientId ?? "");
           setHiringManager(j.hiringManager ?? "");
           setDepartment(j.department ?? "Cloud");
-          setEngagementType(j.engagementType ?? "Direct hire");
+          setEngagementType(j.engagementType ?? ENGAGEMENTS[1]);
           setLocation(j.location ?? "");
           setHeadcount(j.headcount);
-          setCompType(j.compType ?? "Yearly");
+          setCompType(j.compType ?? COMP_TYPES[0]);
           setCompMin(j.compMin ?? "");
           setCompMax(j.compMax ?? "");
           setStack(j.stack);
@@ -71,13 +79,18 @@ function CreateJobForm() {
     }
   }, [editCode]);
 
-  const addStack = () => {
-    const v = add.trim();
-    if (v && !stack.includes(v)) setStack((s) => [...s, v]);
-    setAdd("");
-  };
-
   const clientName = clients.find((c) => c.id === clientId)?.name ?? null;
+
+  const previewJob = {
+    compMin,
+    compMax,
+    compType,
+    engagementType,
+    clientName,
+    title,
+    location,
+    stack,
+  };
 
   async function save(status: JobStatus) {
     setError(undefined);
@@ -129,281 +142,185 @@ function CreateJobForm() {
         title={editing ? "Edit job" : "Create a job"}
         sub={
           editing
-            ? "Update the spec, then publish it or keep it as a draft."
+            ? "Update the spec, then save or publish your changes."
             : "Fill the spec, then publish it or save it as a draft."
         }
         actions={
           <>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() =>
-                router.push(
-                  editing ? `/employer/jobs/${editCode}` : "/employer/jobs",
-                )
-              }
-            >
-              ← {editing ? "Cancel" : "Discard"}
-            </button>
-            <button
-              className="btn btn-ghost btn-sm"
-              onClick={() => save("Draft")}
-              disabled={busy}
-            >
+            <Button asChild variant="outline">
+              <Link href={editing ? `/employer/jobs/${editCode}` : "/employer/jobs"}>
+                {editing ? "Cancel" : "← Discard"}
+              </Link>
+            </Button>
+            <Button variant="outline" onClick={() => save("Draft")} disabled={busy}>
               Save draft
-            </button>
-            <button
-              className="btn btn-sm"
-              onClick={() => save("Published")}
-              disabled={busy}
-            >
+            </Button>
+            <Button variant="navy" onClick={() => save("Published")} disabled={busy}>
               {busy ? "Saving…" : editing ? "Save & publish" : "Publish job"}
-            </button>
+            </Button>
           </>
         }
       />
-      <div className="content">
-        <div style={{ display: "grid", gridTemplateColumns: "1fr 312px", gap: 18, alignItems: "start" }}>
-          {/* form */}
-          <div className="card" style={{ padding: 26 }}>
-            <span className="eyebrow">
-              <span className="tick" />
-              The basics
-            </span>
-            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "1.6fr 1fr", gap: 15 }}>
-              <div>
-                <label className="field-label">Job title</label>
-                <input
-                  className="input"
-                  value={title}
-                  onChange={(e) => setTitle(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="field-label">Job ID</label>
-                <input
-                  className="input mono"
-                  value={jobCode}
-                  readOnly
-                  aria-readonly="true"
-                  style={{ opacity: 0.7, cursor: "not-allowed" }}
-                />
-              </div>
-              <div>
-                <label className="field-label">Client</label>
-                <select
-                  className="select"
-                  value={clientId}
-                  onChange={(e) => setClientId(e.target.value)}
-                >
-                  <option value="">Select a client…</option>
-                  {clients.map((c) => (
-                    <option key={c.id} value={c.id}>
-                      {c.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Hiring manager</label>
-                <select
-                  className="select"
-                  value={hiringManager}
-                  onChange={(e) => setHiringManager(e.target.value)}
-                >
-                  <option value="">Select a manager…</option>
-                  {managers.map((m) => (
-                    <option key={m.id} value={m.name}>
-                      {m.name}
-                    </option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Department</label>
-                <select
-                  className="select"
-                  value={department}
-                  onChange={(e) => setDepartment(e.target.value)}
-                >
-                  {DEPARTMENTS.map((d) => (
-                    <option key={d}>{d}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Engagement</label>
-                <select
-                  className="select"
-                  value={engagementType}
-                  onChange={(e) => setEngagementType(e.target.value)}
-                >
-                  {ENGAGEMENTS.map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Location</label>
-                <input
-                  className="input"
-                  value={location}
-                  onChange={(e) => setLocation(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="field-label">Headcount</label>
-                <input
-                  className="input"
-                  type="number"
-                  min={1}
-                  value={headcount}
-                  onChange={(e) =>
-                    setHeadcount(Math.max(1, Number(e.target.value) || 1))
-                  }
-                />
-              </div>
-            </div>
-
-            <div className="rule" style={{ margin: "24px 0" }} />
-            <span className="eyebrow">
-              <span className="tick" />
-              Compensation
-            </span>
-            <div style={{ marginTop: 14, display: "grid", gridTemplateColumns: "repeat(3,1fr)", gap: 13 }}>
-              <div>
-                <label className="field-label">Type</label>
-                <select
-                  className="select"
-                  value={compType}
-                  onChange={(e) => setCompType(e.target.value)}
-                >
-                  {COMP_TYPES.map((t) => (
-                    <option key={t}>{t}</option>
-                  ))}
-                </select>
-              </div>
-              <div>
-                <label className="field-label">Min</label>
-                <input
-                  className="input mono"
-                  value={compMin}
-                  onChange={(e) => setCompMin(e.target.value)}
-                />
-              </div>
-              <div>
-                <label className="field-label">Max</label>
-                <input
-                  className="input mono"
-                  value={compMax}
-                  onChange={(e) => setCompMax(e.target.value)}
-                />
-              </div>
-            </div>
-
-            <div className="rule" style={{ margin: "24px 0" }} />
-            <span className="eyebrow">
-              <span className="tick" />
-              The work
-            </span>
-            <div style={{ marginTop: 14, display: "grid", gap: 15 }}>
-              <div>
-                <label className="field-label">Required tech stack</label>
-                <div
-                  className="input"
-                  style={{ display: "flex", gap: 6, flexWrap: "wrap", alignItems: "center", minHeight: 46, padding: 8 }}
-                >
-                  {stack.map((s) => (
-                    <span
-                      key={s}
-                      className="tag tag-copper"
-                      style={{ cursor: "pointer" }}
-                      onClick={() => setStack((x) => x.filter((y) => y !== s))}
-                    >
-                      {s} ✕
-                    </span>
-                  ))}
-                  <input
-                    value={add}
-                    onChange={(e) => setAdd(e.target.value)}
-                    onKeyDown={(e) => {
-                      if (e.key === "Enter") {
-                        e.preventDefault();
-                        addStack();
-                      }
-                    }}
-                    onBlur={addStack}
-                    style={{
-                      border: 0,
-                      background: "transparent",
-                      outline: "none",
-                      fontSize: 13,
-                      flex: 1,
-                      minWidth: 70,
-                      color: "var(--ink)",
-                    }}
+      <Body>
+        {error && (
+          <p className="rounded-md bg-destructive/10 px-4 py-2 text-sm text-destructive">
+            {error}
+          </p>
+        )}
+        <div className="grid gap-6 xl:grid-cols-[1.6fr_1fr]">
+          <div className="space-y-6">
+            <Panel title="The basics">
+              <div className="grid gap-4 sm:grid-cols-2">
+                <div className="space-y-1.5">
+                  <Label>Job title</Label>
+                  <Input value={title} onChange={(e) => setTitle(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Job ID</Label>
+                  <Input readOnly value={jobCode} className="bg-muted font-mono" />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Client</Label>
+                  <select
+                    className={sel}
+                    value={clientId}
+                    onChange={(e) => setClientId(e.target.value)}
+                  >
+                    <option value="">Select a client…</option>
+                    {clients.map((c) => (
+                      <option key={c.id} value={c.id}>{c.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Hiring manager</Label>
+                  <select
+                    className={sel}
+                    value={hiringManager}
+                    onChange={(e) => setHiringManager(e.target.value)}
+                  >
+                    <option value="">Select…</option>
+                    {managers.map((m) => (
+                      <option key={m.id} value={m.name}>{m.name}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Department</Label>
+                  <select
+                    className={sel}
+                    value={department}
+                    onChange={(e) => setDepartment(e.target.value)}
+                  >
+                    {DEPARTMENTS.map((d) => (
+                      <option key={d}>{d}</option>
+                    ))}
+                  </select>
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Engagement</Label>
+                  <Segmented
+                    value={engagementType}
+                    options={ENGAGEMENTS}
+                    onChange={setEngagementType}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Location</Label>
+                  <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Headcount</Label>
+                  <Input
+                    type="number"
+                    min={1}
+                    value={headcount}
+                    onChange={(e) =>
+                      setHeadcount(Math.max(1, Number(e.target.value) || 1))
+                    }
                   />
                 </div>
               </div>
-              <div>
-                <label className="field-label">Summary</label>
-                <textarea
-                  className="textarea"
-                  rows={2}
-                  value={summary}
-                  onChange={(e) => setSummary(e.target.value)}
-                />
+            </Panel>
+            <Panel title="Compensation">
+              <div className="grid gap-4 sm:grid-cols-3">
+                <div className="space-y-1.5">
+                  <Label>Type</Label>
+                  <Segmented value={compType} options={COMP_TYPES} onChange={setCompType} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Min</Label>
+                  <Input
+                    type="number"
+                    value={compMin}
+                    onChange={(e) => setCompMin(e.target.value)}
+                  />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Max</Label>
+                  <Input
+                    type="number"
+                    value={compMax}
+                    onChange={(e) => setCompMax(e.target.value)}
+                  />
+                </div>
               </div>
-              <div>
-                <label className="field-label">Responsibilities</label>
-                <textarea
-                  className="textarea"
-                  rows={4}
-                  value={responsibilities}
-                  onChange={(e) => setResponsibilities(e.target.value)}
-                />
+            </Panel>
+            <Panel title="The work">
+              <div className="space-y-4">
+                <div className="space-y-1.5">
+                  <Label>Required tech stack</Label>
+                  <TagInput value={stack} onChange={setStack} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Summary</Label>
+                  <Textarea rows={3} value={summary} onChange={(e) => setSummary(e.target.value)} />
+                </div>
+                <div className="space-y-1.5">
+                  <Label>Responsibilities</Label>
+                  <Textarea
+                    rows={5}
+                    value={responsibilities}
+                    onChange={(e) => setResponsibilities(e.target.value)}
+                    placeholder="One per line"
+                  />
+                </div>
               </div>
-            </div>
-
-            {error && (
-              <p className="err" role="alert" style={{ marginTop: 18 }}>
-                {error}
-              </p>
-            )}
+            </Panel>
           </div>
-
-          {/* live preview */}
-          <div className="stack" style={{ position: "sticky", top: 0 }}>
-            <div className="card">
-              <span className="eyebrow">
-                <span className="tick" />
-                Live preview
-              </span>
-              <div style={{ marginTop: 12, padding: 18, background: "var(--paper-2)", borderRadius: 12, border: "1px solid var(--line)" }}>
-                <span className="eyebrow" style={{ color: "var(--copper)" }}>
-                  {(clientName?.split(" ")[0] ?? "Client")} · {engagementType}
-                </span>
-                <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 22, marginTop: 8, lineHeight: 1.1, letterSpacing: "-0.01em" }}>
-                  {title || "Untitled role"}.
-                </div>
-                <div style={{ marginTop: 10, display: "flex", gap: 6, flexWrap: "wrap" }}>
-                  {[location, ...stack.slice(0, 2)]
-                    .filter(Boolean)
-                    .map((t) => (
-                      <span key={t} className="tag">
-                        {t}
-                      </span>
-                    ))}
-                </div>
-                {(compMin || compMax) && (
-                  <div className="mono" style={{ marginTop: 12, fontSize: 11.5, color: "var(--muted)" }}>
-                    {compMin || "—"}–{compMax || "—"} · {compType}
-                  </div>
+          <div className="xl:sticky xl:top-6 xl:h-fit">
+            <p className="mb-3 font-mono text-[0.68rem] uppercase tracking-widest text-muted-foreground">
+              Live preview
+            </p>
+            <div className="rounded-lg bg-navy-gradient p-6 text-navy-foreground shadow-float">
+              <p className="font-mono text-xs text-teal">
+                {clientName?.split(" ")[0] ?? "Client"} · {engagementType}
+              </p>
+              <h3 className="mt-3 text-xl font-semibold">{title || "Untitled role."}</h3>
+              <div className="mt-4 flex flex-wrap gap-1.5">
+                {location && (
+                  <span className="rounded-sm bg-navy-foreground/10 px-2 py-0.5 text-xs">
+                    {location}
+                  </span>
                 )}
+                {stack.map((s) => (
+                  <span
+                    key={s}
+                    className="rounded-sm bg-navy-foreground/10 px-2 py-0.5 font-mono text-xs"
+                  >
+                    {s}
+                  </span>
+                ))}
               </div>
+              <p className="mt-5 text-lg font-semibold">
+                {compMin || compMax
+                  ? formatJobComp({ compMin, compMax, compType })
+                  : "—"}
+              </p>
             </div>
           </div>
         </div>
-      </div>
+      </Body>
     </>
   );
 }

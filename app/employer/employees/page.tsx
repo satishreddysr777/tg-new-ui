@@ -1,19 +1,20 @@
 "use client";
 
-import { useEffect, useState } from "react";
+import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
 import { useRouter } from "next/navigation";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon, initials } from "@/components/portal/icons";
+import { Body, Table, td, StatusBadge, Segmented, Tile } from "@/components/console/ui";
+import { Input } from "@/components/ui/input";
+import { Button } from "@/components/ui/button";
 import {
   employeesApi,
   formatDate,
   displayClient,
   type Employee,
-  type EmployeeStatus,
 } from "@/lib/employer/employees-api";
 
-const statusDot = (s: EmployeeStatus | null) =>
-  s === "Active" ? "var(--ok)" : s === "Onboarding" ? "var(--copper)" : "var(--warn)";
+const STATUS = ["All", "Active", "Onboarding", "On bench"] as const;
 
 export default function EmployeesPage() {
   const router = useRouter();
@@ -21,7 +22,7 @@ export default function EmployeesPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string>();
   const [q, setQ] = useState("");
-  const [stat, setStat] = useState("All");
+  const [st, setSt] = useState<(typeof STATUS)[number]>("All");
   const [view, setView] = useState<"Table" | "Grid">("Table");
 
   function load() {
@@ -40,24 +41,20 @@ export default function EmployeesPage() {
     load();
   }, []);
 
-  const rows = employees.filter(
-    (e) =>
-      (q === "" ||
-        (e.name + (e.title ?? "") + (e.clientName ?? "")).toLowerCase().includes(q.toLowerCase())) &&
-      (stat === "All" || e.status === stat),
-  );
+  const c = (s: string) => employees.filter((e) => e.status === s).length;
 
-  const counts = {
-    active: employees.filter((e) => e.status === "Active").length,
-    onboarding: employees.filter((e) => e.status === "Onboarding").length,
-    bench: employees.filter((e) => e.status === "On bench").length,
-  };
-  const KPIS: [string, string, string][] = [
-    ["Active", String(counts.active), "On engagement"],
-    ["Onboarding", String(counts.onboarding), "Starting soon"],
-    ["On bench", String(counts.bench), "Available now"],
-    ["Total", String(employees.length), "On payroll"],
-  ];
+  const list = useMemo(
+    () =>
+      employees.filter(
+        (e) =>
+          (st === "All" || e.status === st) &&
+          (q === "" ||
+            (e.name + (e.title ?? "") + (e.clientName ?? ""))
+              .toLowerCase()
+              .includes(q.toLowerCase())),
+      ),
+    [employees, st, q],
+  );
 
   const open = (e: Employee) => router.push(`/employer/employees/${e.employeeCode}`);
 
@@ -69,169 +66,107 @@ export default function EmployeesPage() {
         sub={
           loading
             ? "Loading the workforce…"
-            : `${employees.length} on payroll · ${counts.active} active · ${counts.onboarding} onboarding · ${counts.bench} on bench`
+            : `${employees.length} on payroll · ${c("Active")} active · ${c("Onboarding")} onboarding · ${c("On bench")} on bench`
         }
         actions={
-          <>
-            {/* <button className="btn btn-ghost btn-sm">Export CSV</button> */}
-            <button
-              className="btn btn-sm"
-              onClick={() => router.push("/employer/employees/new")}
-            >
-              <Icon name="plus" size={15} /> Add employee
-            </button>
-          </>
+          <Button asChild variant="navy">
+            <Link href="/employer/employees/new">Add employee</Link>
+          </Button>
         }
       />
-      <div className="content">
-        <div className="grid-4" style={{ marginBottom: 18 }}>
-          {KPIS.map(([l, n, f]) => (
-            <div key={l} className="card kpi">
-              <div className="lbl">{l}</div>
-              <div className="num">{n}</div>
-              <div className="foot">{f.toUpperCase()}</div>
-            </div>
-          ))}
+      <Body>
+        <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+          <Tile label="Active" big={c("Active")} small="On engagement" />
+          <Tile label="Onboarding" big={c("Onboarding")} small="Starting soon" />
+          <Tile label="On bench" big={c("On bench")} small="Available now" />
+          <Tile label="Total" big={employees.length} small="On payroll" />
         </div>
-
-        <div className="between" style={{ marginBottom: 14 }}>
-          <div style={{ display: "flex", gap: 10 }}>
-            <div className="search" style={{ width: 280 }}>
-              <Icon name="search" size={16} />
-              <input
-                className="input"
-                value={q}
-                onChange={(e) => setQ(e.target.value)}
-              />
-            </div>
-            <select
-              className="select"
-              style={{ width: 150 }}
-              value={stat}
-              onChange={(e) => setStat(e.target.value)}
-            >
-              {["All", "Active", "Onboarding", "On bench"].map((o) => (
-                <option key={o}>{o}</option>
-              ))}
-            </select>
-          </div>
-          <div className="seg">
-            {(["Table", "Grid"] as const).map((v) => (
-              <button key={v} className={view === v ? "on" : ""} onClick={() => setView(v)}>
-                {v}
-              </button>
-            ))}
+        <div className="flex flex-wrap items-center gap-3">
+          <Input
+            className="max-w-xs"
+            placeholder="Search employees…"
+            value={q}
+            onChange={(e) => setQ(e.target.value)}
+          />
+          <Segmented value={st} options={STATUS} onChange={setSt} />
+          <div className="ml-auto">
+            <Segmented value={view} options={["Table", "Grid"] as const} onChange={setView} />
           </div>
         </div>
-
         {error ? (
-          <div className="card" style={{ textAlign: "center", color: "var(--muted)", padding: 40 }}>
+          <p className="text-center text-muted-foreground">
             {error}{" "}
-            <button className="link" onClick={load} style={{ fontSize: 13 }}>
+            <button type="button" className="text-primary underline" onClick={load}>
               Retry
             </button>
-          </div>
+          </p>
         ) : loading ? (
-          <div className="card" style={{ textAlign: "center", color: "var(--muted)", padding: 40 }}>
-            Loading…
-          </div>
+          <p className="text-center text-muted-foreground">Loading…</p>
         ) : view === "Table" ? (
-          <div className="card" style={{ padding: 0, overflow: "hidden" }}>
-            <table className="tbl">
-              <thead>
-                <tr>
-                  <th>Name</th>
-                  <th>Role / Client</th>
-                  <th>Type</th>
-                  <th>Bill rate</th>
-                  <th>Manager</th>
-                  <th>Status</th>
-                  <th>End date</th>
-                  <th />
+          <Table
+            head={[
+              "Name",
+              "Role / Client",
+              "Type",
+              "Bill rate",
+              "Manager",
+              "Status",
+              "End date",
+            ]}
+          >
+            {list.length === 0 ? (
+              <tr>
+                <td colSpan={7} className="px-4 py-10 text-center text-muted-foreground">
+                  No employees match that search.
+                </td>
+              </tr>
+            ) : (
+              list.map((e) => (
+                <tr
+                  key={e.id}
+                  className="cursor-pointer hover:bg-muted/50"
+                  onClick={() => open(e)}
+                >
+                  <td className={td}>
+                    <p className="font-medium text-navy">{e.name}</p>
+                    <p className="font-mono text-xs text-muted-foreground">{e.employeeCode}</p>
+                  </td>
+                  <td className={td}>
+                    <p>{e.title ?? "—"}</p>
+                    <p className="text-xs text-muted-foreground">{displayClient(e)}</p>
+                  </td>
+                  <td className={td}>{e.employmentType ?? "—"}</td>
+                  <td className={td}>{e.billRate ?? "—"}</td>
+                  <td className={td}>{e.managerName ?? "—"}</td>
+                  <td className={td}>
+                    {e.status ? <StatusBadge status={e.status} /> : "—"}
+                  </td>
+                  <td className={td}>{formatDate(e.endDate)}</td>
                 </tr>
-              </thead>
-              <tbody>
-                {rows.map((e) => (
-                  <tr key={e.id} className="click" onClick={() => open(e)}>
-                    <td>
-                      <div style={{ display: "flex", alignItems: "center", gap: 11 }}>
-                        <span className="av av-sm">{initials(e.name)}</span>
-                        <div>
-                          <div style={{ fontWeight: 600 }}>{e.name}</div>
-                          <div className="mono" style={{ fontSize: 10.5, color: "var(--muted)" }}>
-                            {e.employeeCode}
-                          </div>
-                        </div>
-                      </div>
-                    </td>
-                    <td>
-                      <div style={{ fontWeight: 500 }}>{e.title ?? "—"}</div>
-                      <div style={{ fontSize: 12, color: "var(--muted)" }}>{displayClient(e)}</div>
-                    </td>
-                    <td>
-                      <span className="tag">{e.employmentType ?? "—"}</span>
-                    </td>
-                    <td className="num-c">{e.billRate ?? "—"}</td>
-                    <td>{e.managerName ?? "—"}</td>
-                    <td>
-                      <span style={{ display: "inline-flex", alignItems: "center", gap: 7, fontSize: 12.5 }}>
-                        <span className="dot" style={{ background: statusDot(e.status) }} />
-                        {e.status ?? "—"}
-                      </span>
-                    </td>
-                    <td className="num-c" style={{ fontSize: 12, color: "var(--muted)" }}>
-                      {formatDate(e.endDate)}
-                    </td>
-                    <td style={{ color: "var(--copper)" }}>
-                      <Icon name="arrow" size={16} />
-                    </td>
-                  </tr>
-                ))}
-                {rows.length === 0 && (
-                  <tr>
-                    <td colSpan={8} style={{ textAlign: "center", color: "var(--muted)", padding: 40 }}>
-                      No employees match that search.
-                    </td>
-                  </tr>
-                )}
-              </tbody>
-            </table>
-          </div>
+              ))
+            )}
+          </Table>
         ) : (
-          <div className="grid-3">
-            {rows.map((e) => (
-              <button
+          <div className="grid gap-4 sm:grid-cols-2 xl:grid-cols-3">
+            {list.map((e) => (
+              <Link
                 key={e.id}
-                className="card"
-                onClick={() => open(e)}
-                style={{ textAlign: "left", cursor: "pointer" }}
+                href={`/employer/employees/${e.employeeCode}`}
+                className="rounded-lg border bg-card p-5 shadow-card hover:border-primary/40"
               >
-                <div style={{ display: "flex", alignItems: "center", gap: 12 }}>
-                  <span className="av av-lg">{initials(e.name)}</span>
-                  <div>
-                    <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 16 }}>
-                      {e.name}
-                    </div>
-                    <div style={{ fontSize: 12.5, color: "var(--muted)" }}>{e.title ?? "—"}</div>
-                  </div>
+                <div className="flex items-center justify-between">
+                  <span className="font-mono text-xs text-muted-foreground">{e.employeeCode}</span>
+                  {e.status && <StatusBadge status={e.status} />}
                 </div>
-                <div className="rule" style={{ margin: "14px 0" }} />
-                <div className="between" style={{ fontSize: 12.5 }}>
-                  <span style={{ color: "var(--muted)" }}>{displayClient(e)}</span>
-                  <span style={{ display: "inline-flex", alignItems: "center", gap: 6 }}>
-                    <span className="dot" style={{ background: statusDot(e.status) }} />
-                    {e.status ?? "—"}
-                  </span>
-                </div>
-                <div className="between" style={{ fontSize: 12.5, marginTop: 8 }}>
-                  <span style={{ color: "var(--muted)" }}>Bill rate</span>
-                  <span className="mono">{e.billRate ?? "—"}</span>
-                </div>
-              </button>
+                <p className="mt-3 font-semibold text-navy">{e.name}</p>
+                <p className="text-sm text-muted-foreground">
+                  {e.title ?? "—"} · {displayClient(e)}
+                </p>
+              </Link>
             ))}
           </div>
         )}
-      </div>
+      </Body>
     </>
   );
 }

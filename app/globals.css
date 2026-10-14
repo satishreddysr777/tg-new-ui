@@ -47,9 +47,9 @@
   --shadow-hover: 0 22px 48px -26px rgba(20,20,15,0.30);
 
   /* font-family variables are wired to next/font in layout.tsx */
-  --font-display: var(--font-space-grotesk), system-ui, sans-serif;
-  --font-body: var(--font-manrope), system-ui, sans-serif;
-  --font-mono: var(--font-space-mono), ui-monospace, monospace;
+  --font-display: var(--font-ibm-sans), system-ui, sans-serif;
+  --font-body: var(--font-ibm-sans), system-ui, sans-serif;
+  --font-mono: var(--font-ibm-mono), ui-monospace, monospace;
 }
 
 * { box-sizing: border-box; }

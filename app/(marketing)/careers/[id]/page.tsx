@@ -3,8 +3,23 @@
 import Link from "next/link";
 import { useEffect, useState } from "react";
 import { useParams } from "next/navigation";
+import { CheckCircle2, MapPin, Briefcase } from "lucide-react";
 import { ApiError } from "@/lib/auth-api";
 import { careersApi, type PublicJob } from "@/lib/careers-api";
+import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
+import { Label } from "@/components/ui/label";
+import { FileInput } from "@/components/console/ui";
+import { Chip } from "@/components/console/ui";
+
+function F({ l, children }: { l: string; children: React.ReactNode }) {
+  return (
+    <div className="space-y-2">
+      <Label>{l}</Label>
+      {children}
+    </div>
+  );
+}
 
 export default function CareerApplyPage() {
   const params = useParams<{ id: string }>();
@@ -12,7 +27,6 @@ export default function CareerApplyPage() {
   const [loading, setLoading] = useState(true);
   const [missing, setMissing] = useState(false);
 
-  // form
   const [firstName, setFirstName] = useState("");
   const [lastName, setLastName] = useState("");
   const [email, setEmail] = useState("");
@@ -23,7 +37,7 @@ export default function CareerApplyPage() {
   const [resume, setResume] = useState<File | null>(null);
   const [busy, setBusy] = useState(false);
   const [error, setError] = useState<string>();
-  const [done, setDone] = useState<string>(); // application code
+  const [done, setDone] = useState<string>();
 
   useEffect(() => {
     careersApi
@@ -35,13 +49,11 @@ export default function CareerApplyPage() {
       .finally(() => setLoading(false));
   }, [params.id]);
 
-  const MAX_RESUME = 4 * 1024 * 1024; // 4MB
+  const MAX_RESUME = 4 * 1024 * 1024;
 
-  function onResume(e: React.ChangeEvent<HTMLInputElement>) {
-    const file = e.target.files?.[0] ?? null;
+  function onResume(file: File | null) {
     if (file && file.size > MAX_RESUME) {
       setError("Résumé must be under 4MB.");
-      e.target.value = "";
       return;
     }
     setError(undefined);
@@ -87,199 +99,150 @@ export default function CareerApplyPage() {
       setError(
         err instanceof ApiError ? err.message : "Couldn't submit. Try again.",
       );
+    } finally {
       setBusy(false);
     }
   }
 
   if (loading) {
     return (
-      <section className="section">
-        <div className="wrap">
-          <p className="lead">Loading role…</p>
-        </div>
+      <section className="container-x py-32">
+        <p className="text-muted-foreground">Loading role…</p>
       </section>
     );
   }
 
   if (missing || !job) {
     return (
-      <section className="section">
-        <div className="wrap">
-          <span className="eyebrow">
-            <span className="tick"></span>Careers
-          </span>
-          <h1 className="display" style={{ marginTop: 16 }}>
-            This role isn&apos;t open.
-          </h1>
-          <p className="lead" style={{ marginTop: 14 }}>
-            It may have been filled or closed.
-          </p>
-          <Link href="/careers" className="btn btn-dark" style={{ marginTop: 24 }}>
-            ← See all open roles
-          </Link>
-        </div>
+      <section className="container-x py-32 text-center">
+        <p className="eyebrow">Careers</p>
+        <h1 className="mt-4 text-4xl font-semibold text-navy">This role isn&apos;t open.</h1>
+        <p className="mt-3 text-muted-foreground">It may have been filled or closed.</p>
+        <Button asChild variant="navy" className="mt-8">
+          <Link href="/careers#openings">← See all open roles</Link>
+        </Button>
       </section>
     );
   }
 
+  const responsibilities = job.responsibilities
+    ? job.responsibilities.split("\n").filter(Boolean)
+    : [];
+
   return (
-    <section className="section">
-      <div className="wrap" style={{ maxWidth: 860 }}>
-        <Link href="/careers" className="link-arrow" style={{ marginBottom: 18, display: "inline-flex" }}>
-          ← All roles
-        </Link>
-        <span className="eyebrow" style={{ marginTop: 10 }}>
-          <span className="tick"></span>
-          {job.department ?? "Open role"}
-        </span>
-        <h1 className="display" style={{ marginTop: 14 }}>
-          {job.title}
-        </h1>
-        <div style={{ marginTop: 16, display: "flex", flexWrap: "wrap", gap: 10 }}>
-          {[job.location, job.engagementType]
-            .filter(Boolean)
-            .map((t) => (
-              <span key={t as string} className="chip" style={{ cursor: "default" }}>
-                {t}
+    <section className="container-x py-14">
+      <Link
+        href="/careers#openings"
+        className="text-sm font-medium text-muted-foreground hover:text-foreground"
+      >
+        ← All roles
+      </Link>
+      <div className="mt-8 grid gap-12 lg:grid-cols-[1.4fr_1fr]">
+        <div>
+          <p className="eyebrow">{job.department ?? "Open role"}</p>
+          <h1 className="mt-3 text-4xl font-semibold text-navy md:text-5xl">{job.title}</h1>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {job.location && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-sm">
+                <MapPin className="h-3.5 w-3.5" />
+                {job.location}
               </span>
-            ))}
-        </div>
-
-        {job.summary && (
-          <p className="lead" style={{ marginTop: 28 }}>
-            {job.summary}
-          </p>
-        )}
-
-        {job.responsibilities && (
-          <div style={{ marginTop: 28 }}>
-            <span className="eyebrow">
-              <span className="tick"></span>What you&apos;ll do
-            </span>
-            <pre
-              style={{
-                marginTop: 14,
-                whiteSpace: "pre-wrap",
-                fontFamily: "inherit",
-                fontSize: 16,
-                lineHeight: 1.75,
-                color: "var(--ink-2)",
-              }}
-            >
-              {job.responsibilities}
-            </pre>
-          </div>
-        )}
-
-        {job.stack.length > 0 && (
-          <div style={{ marginTop: 24, display: "flex", flexWrap: "wrap", gap: 8 }}>
-            {job.stack.map((s) => (
-              <span key={s} className="chip" style={{ cursor: "default" }}>
-                {s}
+            )}
+            {job.engagementType && (
+              <span className="inline-flex items-center gap-1.5 rounded-full border bg-card px-3 py-1 text-sm">
+                <Briefcase className="h-3.5 w-3.5" />
+                {job.engagementType}
               </span>
-            ))}
+            )}
           </div>
-        )}
-
-        <div className="hr" style={{ margin: "44px 0" }} />
-
-        {done ? (
-          <div className="form-success show">
-            <div className="badge">
-              <svg viewBox="0 0 22 22" width="24" height="24" fill="none" stroke="currentColor" strokeWidth="2.2" strokeLinecap="round" strokeLinejoin="round">
-                <path d="M4 11.5l4.5 4.5L18 6" />
-              </svg>
+          {job.summary && (
+            <p className="mt-8 text-lg text-muted-foreground">{job.summary}</p>
+          )}
+          {responsibilities.length > 0 && (
+            <>
+              <h2 className="mt-10 text-xl font-semibold text-navy">What you&apos;ll do</h2>
+              <ul className="mt-4 list-disc space-y-2 pl-5 text-muted-foreground">
+                {responsibilities.map((r) => (
+                  <li key={r}>{r}</li>
+                ))}
+              </ul>
+            </>
+          )}
+          {job.stack.length > 0 && (
+            <div className="mt-8 flex flex-wrap gap-2">
+              {job.stack.map((s) => (
+                <Chip key={s}>{s}</Chip>
+              ))}
             </div>
-            <h3>Application received.</h3>
-            <p className="body" style={{ marginTop: 10 }}>
-              Thanks for applying to <strong>{job.title}</strong>. Your reference
-              is <strong>{done}</strong>. Our talent team will be in touch.
-            </p>
-            <Link href="/careers" className="btn btn-dark" style={{ marginTop: 22 }}>
-              ← Back to roles
-            </Link>
-          </div>
-        ) : (
-          <>
-            <span className="eyebrow">
-              <span className="tick"></span>Apply for this role
-            </span>
-            <p className="body" style={{ marginTop: 8, color: "var(--muted)" }}>
-              No account needed — just tell us about yourself.
-            </p>
-            <form className="form" onSubmit={submit} noValidate style={{ marginTop: 22 }}>
-              <div className="field">
-                <label htmlFor="firstName">First name</label>
-                <input id="firstName" value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+          )}
+        </div>
+        <div className="h-fit rounded-xl border bg-card p-7 shadow-card lg:sticky lg:top-24">
+          {done ? (
+            <div className="py-8 text-center">
+              <CheckCircle2 className="mx-auto h-11 w-11 text-success" />
+              <h2 className="mt-4 text-xl font-semibold text-navy">Application received.</h2>
+              <p className="mt-2 text-sm text-muted-foreground">
+                Thanks for applying to <b className="text-foreground">{job.title}</b>. Your
+                reference is <b className="font-mono text-foreground">{done}</b>. Our talent team
+                will be in touch.
+              </p>
+              <Button asChild variant="outline" className="mt-6">
+                <Link href="/careers#openings">← Back to roles</Link>
+              </Button>
+            </div>
+          ) : (
+            <form onSubmit={submit} className="space-y-4" noValidate>
+              <div>
+                <p className="eyebrow">Apply for this role</p>
+                <p className="mt-1 text-sm text-muted-foreground">
+                  No account needed — just tell us about yourself.
+                </p>
               </div>
-              <div className="field">
-                <label htmlFor="lastName">Last name</label>
-                <input id="lastName" value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+              <div className="grid grid-cols-2 gap-3">
+                <F l="First name">
+                  <Input value={firstName} onChange={(e) => setFirstName(e.target.value)} required />
+                </F>
+                <F l="Last name">
+                  <Input value={lastName} onChange={(e) => setLastName(e.target.value)} required />
+                </F>
               </div>
-              <div className="field">
-                <label htmlFor="email">Email</label>
-                <input id="email" type="email" value={email} onChange={(e) => setEmail(e.target.value)} required />
-              </div>
-              <div className="field">
-                <label htmlFor="phone">Phone <span style={{ textTransform: "none", letterSpacing: 0 }}>(optional)</span></label>
-                <input id="phone" type="tel" value={phone} onChange={(e) => setPhone(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="location">Location</label>
-                <input id="location" value={location} onChange={(e) => setLocation(e.target.value)} />
-              </div>
-              <div className="field">
-                <label htmlFor="years">Years of experience</label>
-                <input id="years" type="number" min={0} value={years} onChange={(e) => setYears(e.target.value)} />
-              </div>
-              <div className="field full">
-                <label htmlFor="linkedin">LinkedIn / portfolio</label>
-                <input id="linkedin" value={linkedin} onChange={(e) => setLinkedin(e.target.value)} />
-              </div>
-              <div className="field full">
-                <label htmlFor="resume">Résumé <span style={{ textTransform: "none", letterSpacing: 0 }}>(PDF or Word, up to 4MB)</span></label>
-                <label
-                  htmlFor="resume"
-                  style={{
-                    display: "flex",
-                    alignItems: "center",
-                    gap: 12,
-                    padding: "14px 16px",
-                    border: "1.5px dashed var(--line)",
-                    borderRadius: "var(--r-sm, 10px)",
-                    cursor: "pointer",
-                    background: "var(--paper-2)",
-                    fontSize: 14,
-                  }}
-                >
-                  <span className="btn btn-dark" style={{ pointerEvents: "none", padding: "8px 14px", fontSize: 13 }}>
-                    Choose file
-                  </span>
-                  <span style={{ color: resume ? "var(--ink)" : "var(--muted)" }}>
-                    {resume ? resume.name : "No file selected"}
-                  </span>
-                </label>
-                <input
-                  id="resume"
-                  type="file"
-                  accept=".pdf,.doc,.docx,application/pdf,application/msword,application/vnd.openxmlformats-officedocument.wordprocessingml.document"
-                  onChange={onResume}
-                  style={{ display: "none" }}
+              <F l="Email">
+                <Input
+                  type="email"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                  required
                 />
+              </F>
+              <F l="Phone (optional)">
+                <Input value={phone} onChange={(e) => setPhone(e.target.value)} />
+              </F>
+              <div className="grid grid-cols-2 gap-3">
+                <F l="Location">
+                  <Input value={location} onChange={(e) => setLocation(e.target.value)} />
+                </F>
+                <F l="Years of experience">
+                  <Input
+                    type="number"
+                    min={0}
+                    value={years}
+                    onChange={(e) => setYears(e.target.value)}
+                  />
+                </F>
               </div>
-              {error && (
-                <div className="field full">
-                  <p style={{ color: "var(--bad)", fontSize: 14 }} role="alert">{error}</p>
-                </div>
-              )}
-              <div className="field full">
-                <button type="submit" className="btn btn-dark" style={{ justifySelf: "start" }} disabled={busy}>
-                  {busy ? "Submitting…" : "Submit application →"}
-                </button>
-              </div>
+              <F l="LinkedIn / portfolio">
+                <Input value={linkedin} onChange={(e) => setLinkedin(e.target.value)} />
+              </F>
+              <F l="Résumé (PDF or Word, up to 4MB)">
+                <FileInput file={resume} onChange={onResume} />
+              </F>
+              {error && <p className="text-sm text-destructive" role="alert">{error}</p>}
+              <Button type="submit" variant="navy" className="w-full" disabled={busy}>
+                {busy ? "Submitting…" : "Submit application →"}
+              </Button>
             </form>
-          </>
-        )}
+          )}
+        </div>
       </div>
     </section>
   );

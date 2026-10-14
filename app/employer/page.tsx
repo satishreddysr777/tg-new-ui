@@ -1,12 +1,19 @@
 "use client";
 
+import Link from "next/link";
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { Users, Clock, Briefcase } from "lucide-react";
 import { Topbar } from "@/components/portal/Topbar";
-import { Icon, type IconName } from "@/components/portal/icons";
+import { Body, Tile, Panel, StageBadge } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
 import { employeesApi } from "@/lib/employer/employees-api";
 import { employerApi } from "@/lib/employer/invites-api";
 import { jobsApi } from "@/lib/employer/jobs-api";
+import {
+  applicationsApi,
+  STAGES,
+  type Stage,
+} from "@/lib/employer/applications-api";
 
 function greetingFor(hour: number): string {
   if (hour < 12) return "Good morning";
@@ -14,21 +21,16 @@ function greetingFor(hour: number): string {
   return "Good evening";
 }
 
-interface Stats {
-  total: number;
-  active: number;
-  onboarding: number;
-  bench: number;
-  clients: number; // distinct clients with an active engagement
-}
-
-const ZERO: Stats = { total: 0, active: 0, onboarding: 0, bench: 0, clients: 0 };
-
 export default function EmployerDashboard() {
-  const router = useRouter();
   const [firstName, setFirstName] = useState("");
-  const [s, setS] = useState<Stats>(ZERO);
-  const [jobs, setJobs] = useState({ total: 0, open: 0 });
+  const [employeeTotal, setEmployeeTotal] = useState(0);
+  const [active, setActive] = useState(0);
+  const [onboarding, setOnboarding] = useState(0);
+  const [jobsTotal, setJobsTotal] = useState(0);
+  const [jobsOpen, setJobsOpen] = useState(0);
+  const [stageCounts, setStageCounts] = useState<Record<Stage, number>>(() =>
+    Object.fromEntries(STAGES.map((s) => [s, 0])) as Record<Stage, number>,
+  );
 
   useEffect(() => {
     employerApi
@@ -39,153 +41,98 @@ export default function EmployerDashboard() {
     employeesApi
       .list()
       .then((rows) => {
-        const active = rows.filter((e) => e.status === "Active");
-        setS({
-          total: rows.length,
-          active: active.length,
-          onboarding: rows.filter((e) => e.status === "Onboarding").length,
-          bench: rows.filter((e) => e.status === "On bench").length,
-          clients: new Set(
-            active.map((e) => e.clientId).filter(Boolean),
-          ).size,
-        });
+        setEmployeeTotal(rows.length);
+        setActive(rows.filter((e) => e.status === "Active").length);
+        setOnboarding(rows.filter((e) => e.status === "Onboarding").length);
       })
-      .catch(() => setS(ZERO));
+      .catch(() => {
+        setEmployeeTotal(0);
+        setActive(0);
+        setOnboarding(0);
+      });
 
     jobsApi
       .list()
-      .then((rows) =>
-        setJobs({
-          total: rows.length,
-          open: rows.filter((j) => j.status === "Published").length,
-        }),
-      )
-      .catch(() => setJobs({ total: 0, open: 0 }));
+      .then(async (rows) => {
+        setJobsTotal(rows.length);
+        setJobsOpen(rows.filter((j) => j.status === "Published").length);
+        const lists = await Promise.all(
+          rows.map((j) =>
+            applicationsApi.listByJob(j.jobCode).catch(() => [] as const),
+          ),
+        );
+        const all = lists.flat();
+        const counts = Object.fromEntries(
+          STAGES.map((s) => [s, all.filter((a) => a.stage === s).length]),
+        ) as Record<Stage, number>;
+        setStageCounts(counts);
+      })
+      .catch(() => {
+        setJobsTotal(0);
+        setJobsOpen(0);
+        setStageCounts(
+          Object.fromEntries(STAGES.map((s) => [s, 0])) as Record<Stage, number>,
+        );
+      });
   }, []);
 
   const now = new Date();
-  const weekday = now.toLocaleDateString("en-US", { weekday: "long" });
-  const date = now.toLocaleDateString("en-US", {
-    month: "long",
-    day: "numeric",
-    year: "numeric",
-  });
-
-  // Tiles — Employees is live; the rest have no backing service yet → zero.
-  const tiles: {
-    href: string;
-    icon: IconName;
-    title: string;
-    big: string;
-    small: string;
-    color: string;
-  }[] = [
-    {
-      href: "/employer/employees",
-      icon: "team",
-      title: "Employees",
-      big: `${s.total} on payroll`,
-      small: `${s.active} active · ${s.onboarding} onboarding`,
-      color: "var(--copper)",
-    },
-    {
-      href: "/employer/timesheets",
-      icon: "clock",
-      title: "Timesheets",
-      big: "Coming soon",
-      small: "Not yet available",
-      color: "var(--teal)",
-    },
-    {
-      href: "/employer/jobs",
-      icon: "brief",
-      title: "Open jobs",
-      big: `${jobs.open} open`,
-      small: `${jobs.total} requisition${jobs.total === 1 ? "" : "s"} total`,
-      color: "var(--ok)",
-    },
-  ];
+  const kicker = now
+    .toLocaleDateString("en-US", {
+      weekday: "long",
+      month: "long",
+      day: "numeric",
+      year: "numeric",
+    })
+    .replace(",", " ·");
 
   return (
     <>
       <Topbar
-        kicker={`${weekday} · ${date}`}
+        kicker={kicker}
         title={`${greetingFor(now.getHours())}${firstName ? `, ${firstName}` : ""}.`}
         sub="Here's where the workforce and hiring pipeline stand today."
         actions={
-          <>
-            {/* <button className="btn btn-ghost btn-sm">Export report</button> */}
-            <button
-              className="btn btn-sm"
-              onClick={() => router.push("/employer/jobs/new")}
-            >
-              <Icon name="plus" size={15} /> Create job
-            </button>
-          </>
+          <Button asChild variant="navy">
+            <Link href="/employer/jobs/new">Create job</Link>
+          </Button>
         }
       />
-
-      <div className="content">
-        {/* quick-jump tiles */}
-        <div className="grid-3" style={{ marginBottom: 22 }}>
-          {tiles.map((t) => (
-            <button
-              key={t.href}
-              className="card"
-              onClick={() => router.push(t.href)}
-              style={{
-                textAlign: "left",
-                cursor: "pointer",
-                background: "var(--paper)",
-                display: "flex",
-                flexDirection: "column",
-                gap: 14,
-              }}
-            >
-              <span
-                style={{
-                  width: 44,
-                  height: 44,
-                  borderRadius: 11,
-                  background: t.color,
-                  color: "#fff",
-                  display: "grid",
-                  placeItems: "center",
-                }}
-              >
-                <Icon name={t.icon} size={21} />
-              </span>
-              <div>
-                <div
-                  style={{
-                    fontFamily: "var(--font-display)",
-                    fontWeight: 600,
-                    fontSize: 18,
-                    letterSpacing: "-0.01em",
-                  }}
-                >
-                  {t.title}
-                </div>
-                <div style={{ fontSize: 13, color: "var(--ink-2)", marginTop: 4 }}>
-                  {t.big}
-                </div>
-                <div
-                  className="mono"
-                  style={{
-                    fontSize: 10.5,
-                    letterSpacing: "0.04em",
-                    color: "var(--muted-2)",
-                    marginTop: 6,
-                    textTransform: "uppercase",
-                  }}
-                >
-                  {t.small}
-                </div>
-              </div>
-            </button>
-          ))}
+      <Body>
+        <div className="grid gap-4 md:grid-cols-3">
+          <Tile
+            to="/employer/employees"
+            icon={<Users className="h-4 w-4" />}
+            label="Employees"
+            big={`${employeeTotal} on payroll`}
+            small={`${active} active · ${onboarding} onboarding`}
+          />
+          <Tile
+            to="/employer/timesheets"
+            icon={<Clock className="h-4 w-4" />}
+            label="Timesheets"
+            big="Coming soon"
+            small="Not yet available"
+          />
+          <Tile
+            to="/employer/jobs"
+            icon={<Briefcase className="h-4 w-4" />}
+            label="Open jobs"
+            big={`${jobsOpen} open`}
+            small={`${jobsTotal} requisition${jobsTotal === 1 ? "" : "s"} total`}
+          />
         </div>
-      </div>
+        <Panel title="Hiring pipeline">
+          <div className="grid grid-cols-3 gap-3 md:grid-cols-6">
+            {STAGES.map((s) => (
+              <div key={s} className="rounded-md border p-4">
+                <StageBadge stage={s} />
+                <p className="mt-3 text-2xl font-semibold text-navy">{stageCounts[s]}</p>
+              </div>
+            ))}
+          </div>
+        </Panel>
+      </Body>
     </>
   );
 }

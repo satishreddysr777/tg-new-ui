@@ -1,15 +1,18 @@
 "use client";
 
-import { useRouter } from "next/navigation";
+import Link from "next/link";
 import { useEffect, useMemo, useState } from "react";
+import { Search, ArrowRight } from "lucide-react";
 import { careersApi, type PublicJob } from "@/lib/careers-api";
+import { SectionHead } from "@/components/site/SiteShell";
+import { Input } from "@/components/ui/input";
+import { cn } from "@/lib/utils";
 
 export default function JobBoard() {
-  const router = useRouter();
   const [jobs, setJobs] = useState<PublicJob[]>([]);
   const [loading, setLoading] = useState(true);
-  const [team, setTeam] = useState("all");
-  const [query, setQuery] = useState("");
+  const [dept, setDept] = useState("All");
+  const [q, setQ] = useState("");
 
   useEffect(() => {
     careersApi
@@ -19,91 +22,94 @@ export default function JobBoard() {
       .finally(() => setLoading(false));
   }, []);
 
-  // Department pills come from whatever published roles exist.
-  const teams = useMemo(() => {
+  const depts = useMemo(() => {
     const set = new Set(
       jobs.map((j) => j.department).filter((d): d is string => Boolean(d)),
     );
-    return ["all", ...Array.from(set).sort()];
+    return ["All", ...Array.from(set).sort()];
   }, [jobs]);
 
-  const filtered = useMemo(() => {
-    const q = query.trim().toLowerCase();
+  const list = useMemo(() => {
+    const query = q.trim().toLowerCase();
     return jobs.filter((j) => {
-      const matchTeam = team === "all" || j.department === team;
+      const matchDept = dept === "All" || j.department === dept;
       const hay = `${j.title} ${j.department ?? ""} ${j.location ?? ""} ${j.engagementType ?? ""}`;
-      return matchTeam && (!q || hay.toLowerCase().includes(q));
+      return matchDept && (!query || hay.toLowerCase().includes(query));
     });
-  }, [jobs, team, query]);
+  }, [jobs, dept, q]);
 
-  const count = filtered.length;
+  const countLabel = loading
+    ? "Loading…"
+    : `${list.length} open role${list.length === 1 ? "" : "s"}`;
 
   return (
-    <>
-      <div className="board-head reveal">
-        <div style={{ maxWidth: "560px" }}>
-          <span className="eyebrow">
-            <span className="tick"></span>Open roles
-          </span>
-          <h2 style={{ marginTop: "18px" }}>Find your next role.</h2>
+    <section id="openings" className="scroll-mt-20 border-y bg-card py-24">
+      <div className="container-x">
+        <div className="flex flex-col justify-between gap-6 md:flex-row md:items-end">
+          <SectionHead eyebrow="Open roles" title="Find your next role." />
+          <p className="font-mono text-sm text-muted-foreground">{countLabel}</p>
         </div>
-        <span className="job-count">
-          {loading
-            ? "Loading…"
-            : `${count} ${count === 1 ? "open role" : "open roles"}`}
-        </span>
-      </div>
-
-      <div className="filters reveal">
-        <div className="chips">
-          {teams.map((t) => (
-            <button
-              key={t}
-              className={`chip${t === team ? " active" : ""}`}
-              onClick={() => setTeam(t)}
-            >
-              {t === "all" ? "All" : t}
-            </button>
-          ))}
-        </div>
-        <div className="search">
-          <svg width="16" height="16" viewBox="0 0 16 16" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round">
-            <circle cx="7" cy="7" r="5" />
-            <path d="M11 11l3 3" />
-          </svg>
-          <input
-            type="text"
-            aria-label="Search roles"
-            value={query}
-            onChange={(e) => setQuery(e.target.value)}
-          />
-        </div>
-      </div>
-
-      <div className="jobs">
-        {filtered.map((j) => (
-          <div
-            className="job"
-            key={j.jobCode}
-            onClick={() => router.push(`/careers/${j.jobCode}`)}
-          >
-            <div>
-              <div className="title">{j.title}</div>
-              <div className="dept">{j.department ?? "—"}</div>
-            </div>
-            <div className="meta">{j.location ?? "—"}</div>
-            <div className="meta">{j.engagementType ?? "—"}</div>
-            <span className="apply">Apply →</span>
+        <div className="mt-10 flex flex-col gap-4 md:flex-row md:items-center md:justify-between">
+          <div className="flex flex-wrap gap-2">
+            {depts.map((d) => (
+              <button
+                key={d}
+                type="button"
+                onClick={() => setDept(d)}
+                className={cn(
+                  "rounded-full border px-4 py-1.5 text-sm font-medium",
+                  dept === d
+                    ? "border-navy bg-navy text-navy-foreground"
+                    : "bg-background hover:bg-muted",
+                )}
+              >
+                {d}
+              </button>
+            ))}
           </div>
-        ))}
-      </div>
-      {!loading && count === 0 && (
-        <div className="no-results">
-          {jobs.length === 0
-            ? "No open roles right now. Check back soon — or send us your résumé below."
-            : "No roles match that search. Try a different keyword."}
+          <div className="relative md:w-72">
+            <Search className="absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-muted-foreground" />
+            <Input
+              aria-label="Search roles"
+              placeholder="Search roles"
+              className="pl-9"
+              value={q}
+              onChange={(e) => setQ(e.target.value)}
+            />
+          </div>
         </div>
-      )}
-    </>
+        <div className="mt-8 divide-y rounded-lg border bg-background">
+          {!loading && jobs.length === 0 ? (
+            <p className="p-10 text-center text-muted-foreground">
+              No open roles right now. Check back soon — or send us your résumé below.
+            </p>
+          ) : !loading && list.length === 0 ? (
+            <p className="p-10 text-center text-muted-foreground">
+              No roles match that search. Try a different keyword.
+            </p>
+          ) : (
+            list.map((j) => (
+              <Link
+                key={j.jobCode}
+                href={`/careers/${j.jobCode}`}
+                className="group grid items-center gap-2 p-6 transition-colors hover:bg-muted/50 md:grid-cols-[2fr_1fr_1fr_1fr_auto] md:gap-6"
+              >
+                <span className="font-semibold text-navy group-hover:text-primary">
+                  {j.title}
+                </span>
+                <span className="text-sm text-muted-foreground">{j.department ?? "—"}</span>
+                <span className="text-sm text-muted-foreground">{j.location ?? "—"}</span>
+                <span className="text-sm text-muted-foreground">
+                  {j.engagementType ?? "—"}
+                </span>
+                <span className="inline-flex items-center gap-1 text-sm font-semibold text-primary">
+                  Apply <ArrowRight className="h-4 w-4" />
+                </span>
+              </Link>
+            ))
+          )}
+        </div>
+      </div>
+    </section>
   );
 }

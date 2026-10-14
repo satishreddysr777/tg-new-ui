@@ -1,6 +1,7 @@
 import type { Config } from "tailwindcss";
 
 const config: Config = {
+  darkMode: ["class"],
   content: [
     "./app/**/*.{ts,tsx}",
     "./components/**/*.{ts,tsx}",
@@ -8,6 +9,58 @@ const config: Config = {
   theme: {
     extend: {
       colors: {
+        border: "var(--border)",
+        input: "var(--input)",
+        ring: "var(--ring)",
+        background: "var(--background)",
+        foreground: "var(--foreground)",
+        primary: {
+          DEFAULT: "var(--primary)",
+          foreground: "var(--primary-foreground)",
+        },
+        secondary: {
+          DEFAULT: "var(--secondary)",
+          foreground: "var(--secondary-foreground)",
+        },
+        destructive: {
+          DEFAULT: "var(--destructive)",
+          foreground: "var(--destructive-foreground)",
+        },
+        muted: {
+          DEFAULT: "var(--muted)",
+          foreground: "var(--muted-foreground)",
+        },
+        accent: {
+          DEFAULT: "var(--accent)",
+          foreground: "var(--accent-foreground)",
+        },
+        popover: {
+          DEFAULT: "var(--popover)",
+          foreground: "var(--popover-foreground)",
+        },
+        card: {
+          DEFAULT: "var(--card)",
+          foreground: "var(--card-foreground)",
+        },
+        navy: {
+          DEFAULT: "var(--navy)",
+          2: "var(--navy-2)",
+          foreground: "var(--navy-foreground)",
+          muted: "var(--navy-muted)",
+        },
+        teal: "var(--teal)",
+        success: "var(--success)",
+        warning: "var(--warning)",
+        sidebar: {
+          DEFAULT: "var(--sidebar)",
+          foreground: "var(--sidebar-foreground)",
+          primary: "var(--sidebar-primary)",
+          "primary-foreground": "var(--sidebar-primary-foreground)",
+          accent: "var(--sidebar-accent)",
+          "accent-foreground": "var(--sidebar-accent-foreground)",
+          border: "var(--sidebar-border)",
+          ring: "var(--sidebar-ring)",
+        },
         paper: {
           DEFAULT: "var(--paper)",
           2: "var(--paper-2)",
@@ -17,10 +70,6 @@ const config: Config = {
           DEFAULT: "var(--ink)",
           soft: "var(--ink-soft)",
           2: "var(--ink-2)",
-        },
-        muted: {
-          DEFAULT: "var(--muted)",
-          2: "var(--muted-2)",
         },
         copper: {
           DEFAULT: "var(--copper)",
@@ -34,23 +83,23 @@ const config: Config = {
         },
       },
       fontFamily: {
+        sans: ["var(--font-sans)", "system-ui", "sans-serif"],
+        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
         display: ["var(--font-display)", "system-ui", "sans-serif"],
         body: ["var(--font-body)", "system-ui", "sans-serif"],
-        mono: ["var(--font-mono)", "ui-monospace", "monospace"],
       },
       borderRadius: {
-        sm: "var(--r-sm)",
-        DEFAULT: "var(--r)",
-        lg: "var(--r-lg)",
-        pill: "var(--r-pill)",
+        lg: "var(--radius)",
+        md: "calc(var(--radius) - 2px)",
+        sm: "calc(var(--radius) - 4px)",
+        pill: "var(--r-pill, 999px)",
       },
       maxWidth: {
-        wrap: "var(--maxw)",
+        wrap: "var(--maxw, 80rem)",
       },
       boxShadow: {
         card: "var(--shadow-card)",
         float: "var(--shadow-float)",
-        hover: "var(--shadow-hover)",
       },
     },
   },

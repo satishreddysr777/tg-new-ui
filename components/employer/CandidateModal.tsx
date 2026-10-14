@@ -1,16 +1,20 @@
 "use client";
 
 import { useState } from "react";
-import { initials } from "@/components/portal/icons";
 import { ApiError } from "@/lib/auth-api";
 import {
   applicationsApi,
-  appliedAgo,
   STAGES,
-  stageColor,
   type Application,
   type Stage,
 } from "@/lib/employer/applications-api";
+import { Facts, Chip } from "@/components/console/ui";
+import { Button } from "@/components/ui/button";
+import {
+  Dialog,
+  DialogContent,
+  DialogTitle,
+} from "@/components/ui/dialog";
 
 const RESUME_BASE = process.env.NEXT_PUBLIC_API_URL ?? "/api/v1";
 
@@ -24,23 +28,6 @@ function fmtDate(iso: string): string {
   });
 }
 
-/** Labelled value row used in the details panel. */
-function Row({ label, value }: { label: string; value: React.ReactNode }) {
-  return (
-    <div className="between" style={{ alignItems: "baseline", gap: 12 }}>
-      <span className="eyebrow" style={{ gap: 0 }}>{label}</span>
-      <span style={{ fontWeight: 500, fontSize: 13, textAlign: "right", wordBreak: "break-word" }}>
-        {value}
-      </span>
-    </div>
-  );
-}
-
-/**
- * Candidate detail popup — a large dialog with an inline résumé preview, every
- * field captured on the application, and a "Move to" rail to advance the
- * candidate through the pipeline.
- */
 export function CandidateModal({
   application,
   jobTitle,
@@ -65,7 +52,9 @@ export function CandidateModal({
       setA(updated);
       onUpdated(updated);
     } catch (err) {
-      setError(err instanceof ApiError ? err.message : "Couldn't move candidate.");
+      setError(
+        err instanceof ApiError ? err.message : "Couldn't move candidate.",
+      );
     } finally {
       setBusy(false);
     }
@@ -80,175 +69,126 @@ export function CandidateModal({
     : null;
 
   return (
-    <div className="modal-bg" onClick={onClose}>
-      <div
-        className="modal"
-        style={{ width: "94vw", maxWidth: 1180, height: "90vh", maxHeight: "90vh", display: "flex", flexDirection: "column" }}
-        onClick={(e) => e.stopPropagation()}
-      >
-        {/* header */}
-        <div
-          className="between"
-          style={{ padding: "16px 22px", borderBottom: "1px solid var(--line)", alignItems: "center", flex: "none" }}
-        >
-          <div style={{ display: "flex", gap: 13, alignItems: "center" }}>
-            <span className="av av-lg">{initials(a.name)}</span>
-            <div>
-              <div style={{ fontFamily: "var(--font-display)", fontWeight: 600, fontSize: 20 }}>
-                {a.name}
-              </div>
-              <div style={{ fontSize: 12.5, color: "var(--muted)" }}>
-                {jobTitle} · Applied {appliedAgo(a.appliedAt)} · {a.applicationCode}
-              </div>
-            </div>
+    <Dialog open onOpenChange={(o) => !o && onClose()}>
+      <DialogContent className="max-h-[90vh] max-w-5xl overflow-y-auto">
+        <p className="font-mono text-xs text-muted-foreground">
+          {jobTitle} · {a.applicationCode}
+        </p>
+        <DialogTitle className="text-xl text-navy">{a.name}</DialogTitle>
+
+        {a.resumeName && (
+          <div className="flex flex-wrap items-center justify-between gap-2 rounded-md border border-dashed p-3 text-sm">
+            <span className="truncate">{a.resumeName}</span>
+            <span className="flex gap-2">
+              <Button asChild size="sm" variant="outline">
+                <a href={resumeUrl} target="_blank" rel="noreferrer">
+                  Open ↗
+                </a>
+              </Button>
+              <Button asChild size="sm" variant="navy">
+                <a href={resumeUrl} download={a.resumeName}>
+                  Download ↓
+                </a>
+              </Button>
+            </span>
           </div>
-          <button className="btn btn-ghost btn-sm" onClick={onClose}>
-            Close ✕
-          </button>
+        )}
+
+        {a.resumeName && isPdf && (
+          <iframe
+            title="Résumé preview"
+            src={`${resumeUrl}#view=FitH`}
+            className="h-64 w-full rounded-md border bg-white md:h-80"
+          />
+        )}
+
+        <div className="flex flex-wrap gap-1.5">
+          {STAGES.map((s) => (
+            <Button
+              key={s}
+              size="sm"
+              variant={a.stage === s ? "navy" : "outline"}
+              disabled={busy}
+              onClick={() => move(s)}
+            >
+              {s}
+            </Button>
+          ))}
+        </div>
+        {error && (
+          <p className="text-sm text-destructive" role="alert">{error}</p>
+        )}
+
+        <Facts
+          cols={3}
+          items={[
+            ["Email", a.email ?? "—"],
+            ["Phone", a.phone ?? "—"],
+            ["Location", a.location ?? "—"],
+            ["Years", a.years != null ? String(a.years) : "—"],
+            [
+              "LinkedIn",
+              linkedinHref ? (
+                <a
+                  href={linkedinHref}
+                  target="_blank"
+                  rel="noreferrer"
+                  className="text-primary hover:underline"
+                >
+                  View ↗
+                </a>
+              ) : (
+                "—"
+              ),
+            ],
+            ["Source", a.source ?? "—"],
+            ["Comp ask", a.compAsk ?? "—"],
+            ["Match", a.matchPct != null ? `${a.matchPct}%` : "—"],
+            ["Applied", fmtDate(a.appliedAt)],
+            ["Reference", a.applicationCode],
+          ]}
+        />
+
+        <div>
+          <h3 className="text-sm font-semibold text-navy">Summary</h3>
+          <p className="mt-1 text-sm text-muted-foreground">
+            {a.summary || "—"}
+          </p>
         </div>
 
-        {/* body: résumé preview | details + move-to */}
-        <div style={{ display: "grid", gridTemplateColumns: "1.5fr 360px", flex: 1, minHeight: 0 }}>
-          {/* résumé */}
-          <div style={{ borderRight: "1px solid var(--line)", padding: 18, display: "flex", flexDirection: "column", minHeight: 0, background: "var(--paper-2)" }}>
-            <div className="between" style={{ marginBottom: 12, flex: "none" }}>
-              <span className="eyebrow" style={{ gap: 0 }}>Résumé</span>
-              {a.resumeName && (
-                <div style={{ display: "flex", gap: 8 }}>
-                  <a className="btn btn-ghost btn-sm" href={resumeUrl} target="_blank" rel="noreferrer">
-                    Open ↗
-                  </a>
-                  <a className="btn btn-sm" href={resumeUrl} download={a.resumeName}>
-                    Download ↓
-                  </a>
-                </div>
-              )}
-            </div>
-
-            {!a.resumeName ? (
-              <div style={{ flex: 1, display: "grid", placeItems: "center", color: "var(--muted)", border: "1px dashed var(--line)", borderRadius: 10 }}>
-                No résumé uploaded.
-              </div>
-            ) : isPdf ? (
-              <iframe
-                title="Résumé preview"
-                src={`${resumeUrl}#view=FitH`}
-                style={{ flex: 1, width: "100%", border: "1px solid var(--line)", borderRadius: 10, background: "#fff", minHeight: 0 }}
-              />
-            ) : (
-              <div style={{ flex: 1, display: "grid", placeItems: "center", border: "1px dashed var(--line)", borderRadius: 10, textAlign: "center", padding: 24 }}>
-                <div>
-                  <div style={{ fontSize: 40 }}>📄</div>
-                  <div style={{ fontWeight: 600, marginTop: 8, wordBreak: "break-all" }}>{a.resumeName}</div>
-                  <div style={{ fontSize: 12.5, color: "var(--muted)", marginTop: 6, maxWidth: 340 }}>
-                    Inline preview isn&apos;t available for this file type. Use
-                    Open or Download above to view it.
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-
-          {/* details + move-to */}
-          <div style={{ padding: 22, overflow: "auto", display: "flex", flexDirection: "column", gap: 18 }}>
-            <div>
-              <span className="eyebrow" style={{ gap: 0 }}>Applicant</span>
-              <div style={{ marginTop: 12, display: "flex", flexDirection: "column", gap: 11 }}>
-                <Row label="Email" value={a.email ? <a className="link" href={`mailto:${a.email}`} style={{ fontSize: 13 }}>{a.email}</a> : "—"} />
-                <Row label="Phone" value={a.phone ?? "—"} />
-                <Row label="Location" value={a.location ?? "—"} />
-                <Row label="Years" value={a.years != null ? `${a.years}` : "—"} />
-                <Row
-                  label="LinkedIn"
-                  value={linkedinHref ? (
-                    <a className="link" href={linkedinHref} target="_blank" rel="noreferrer" style={{ fontSize: 13 }}>
-                      View ↗
-                    </a>
-                  ) : "—"}
-                />
-                <Row label="Source" value={a.source ?? "—"} />
-                <Row label="Comp ask" value={a.compAsk ?? "—"} />
-                <Row label="Match" value={a.matchPct != null ? `${a.matchPct}%` : "—"} />
-                <Row label="Applied" value={fmtDate(a.appliedAt)} />
-                <Row label="Reference" value={<span className="mono" style={{ fontSize: 12 }}>{a.applicationCode}</span>} />
-              </div>
-            </div>
-
-            {a.summary && (
-              <div>
-                <span className="eyebrow" style={{ gap: 0 }}>Summary</span>
-                <p style={{ marginTop: 8, fontSize: 13.5, lineHeight: 1.6, color: "var(--ink-2)" }}>
-                  {a.summary}
-                </p>
-              </div>
-            )}
-
-            {a.skills.length > 0 && (
-              <div>
-                <span className="eyebrow" style={{ gap: 0 }}>Skills</span>
-                <div style={{ marginTop: 10, display: "flex", flexWrap: "wrap", gap: 6 }}>
-                  {a.skills.map((s) => (
-                    <span key={s} className="tag tag-copper">{s}</span>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            {a.experience.length > 0 && (
-              <div>
-                <span className="eyebrow" style={{ gap: 0 }}>Experience</span>
-                <div style={{ marginTop: 8 }}>
-                  {a.experience.map((x, i) => (
-                    <div key={i} style={{ padding: "10px 0", borderBottom: i < a.experience.length - 1 ? "1px solid var(--line-2)" : 0 }}>
-                      <div style={{ fontWeight: 600, fontSize: 13 }}>{x.title}</div>
-                      <div style={{ fontSize: 12, color: "var(--muted)" }}>{x.company} · {x.period}</div>
-                      {x.detail && <div style={{ fontSize: 12.5, color: "var(--ink-2)", marginTop: 4 }}>{x.detail}</div>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-            )}
-
-            <div>
-              <span className="eyebrow" style={{ gap: 0 }}>Move to</span>
-              <div style={{ marginTop: 10, display: "flex", flexDirection: "column", gap: 8 }}>
-                {STAGES.map((s) => {
-                  const on = s === a.stage;
-                  return (
-                    <button
-                      key={s}
-                      onClick={() => move(s)}
-                      disabled={busy}
-                      style={{
-                        display: "flex",
-                        alignItems: "center",
-                        gap: 9,
-                        padding: "10px 13px",
-                        borderRadius: 9,
-                        border: "1px solid var(--line)",
-                        background: on ? "var(--ink)" : "var(--paper-2)",
-                        color: on ? "#fff" : "var(--ink)",
-                        fontSize: 13,
-                        fontWeight: 500,
-                        cursor: busy ? "default" : "pointer",
-                        textAlign: "left",
-                      }}
-                    >
-                      <span className="dot" style={{ background: on ? "#fff" : stageColor[s] }} />
-                      {s}
-                    </button>
-                  );
-                })}
-              </div>
-              {error && (
-                <p className="err" role="alert" style={{ marginTop: 12 }}>
-                  {error}
-                </p>
-              )}
+        {a.skills.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-navy">Skills</h3>
+            <div className="mt-2 flex flex-wrap gap-1.5">
+              {a.skills.map((s) => (
+                <Chip key={s}>{s}</Chip>
+              ))}
             </div>
           </div>
-        </div>
-      </div>
-    </div>
+        )}
+
+        {a.experience.length > 0 && (
+          <div>
+            <h3 className="text-sm font-semibold text-navy">Experience</h3>
+            <ul className="mt-2 space-y-3">
+              {a.experience.map((x, i) => (
+                <li
+                  key={i}
+                  className="border-l-2 border-primary pl-3 text-sm"
+                >
+                  <p className="font-medium">
+                    {x.title} · {x.company}
+                  </p>
+                  <p className="text-xs text-muted-foreground">{x.period}</p>
+                  {x.detail && (
+                    <p className="mt-1 text-muted-foreground">{x.detail}</p>
+                  )}
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+      </DialogContent>
+    </Dialog>
   );
 }

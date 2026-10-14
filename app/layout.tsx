@@ -1,26 +1,20 @@
 import type { Metadata } from "next";
-import { Space_Grotesk, Manrope, Space_Mono } from "next/font/google";
+import { IBM_Plex_Sans, IBM_Plex_Mono } from "next/font/google";
 import "./globals.css";
+import "./lovable-theme.css";
 import "./console.css";
 
-const spaceGrotesk = Space_Grotesk({
+const ibmSans = IBM_Plex_Sans({
   subsets: ["latin"],
   weight: ["400", "500", "600", "700"],
-  variable: "--font-space-grotesk",
+  variable: "--font-ibm-sans",
   display: "swap",
 });
 
-const manrope = Manrope({
+const ibmMono = IBM_Plex_Mono({
   subsets: ["latin"],
-  weight: ["400", "500", "600", "700", "800"],
-  variable: "--font-manrope",
-  display: "swap",
-});
-
-const spaceMono = Space_Mono({
-  subsets: ["latin"],
-  weight: ["400", "700"],
-  variable: "--font-space-mono",
+  weight: ["400", "500", "600"],
+  variable: "--font-ibm-mono",
   display: "swap",
 });
 
@@ -39,7 +33,7 @@ export default function RootLayout({
   return (
     <html
       lang="en"
-      className={`${spaceGrotesk.variable} ${manrope.variable} ${spaceMono.variable}`}
+      className={`${ibmSans.variable} ${ibmMono.variable} font-sans antialiased`}
     >
       <body>{children}</body>
     </html>

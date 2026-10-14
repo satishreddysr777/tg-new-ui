@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { AuthAside } from "./AuthAside";
+import { AuthChrome } from "./AuthChrome";
 import { SignIn } from "./screens/SignIn";
 import { Forgot } from "./screens/Forgot";
 import { Verify } from "./screens/Verify";
@@ -20,15 +20,10 @@ export function AuthShell({ initial = "signin" }: { initial?: Screen }) {
   };
 
   return (
-    <div className="tg-auth">
-      <div className="split">
-        <AuthAside />
-        <div className="panel">
-          {screen === "signin" && <SignIn go={go} />}
-          {screen === "forgot" && <Forgot go={go} ctx={ctx} />}
-          {screen === "verify" && <Verify go={go} ctx={ctx} />}
-        </div>
-      </div>
-    </div>
+    <AuthChrome>
+      {screen === "signin" && <SignIn go={go} />}
+      {screen === "forgot" && <Forgot go={go} ctx={ctx} />}
+      {screen === "verify" && <Verify go={go} ctx={ctx} />}
+    </AuthChrome>
   );
 }
